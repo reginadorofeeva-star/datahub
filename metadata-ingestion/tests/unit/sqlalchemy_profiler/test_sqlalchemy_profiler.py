@@ -189,12 +189,23 @@ class TestQueryTimeout:
         return QueryTimeout(read=read, apply=apply, restore=restore)
 
     @staticmethod
-    def _conn(autocommit=True, isolation_level="READ COMMITTED"):
+    def _conn(autocommit=True, isolation_level="READ COMMITTED", driver="psycopg2"):
+        """A connection shaped like one of the drivers that actually ship.
+
+        psycopg2 exposes `autocommit` as a bool; PyMySQL and mysqlclient expose
+        `get_autocommit()` and leave `autocommit` a *method*, which is always
+        truthy -- mocking it as a bool is what let the warning be dead code on
+        MySQL.
+        """
         conn = MagicMock()
         conn.get_execution_options.return_value = {}
-        # The driver flag is what the profiler reads: get_isolation_level()
-        # reports the server's level and never says AUTOCOMMIT.
-        conn.connection.dbapi_connection.autocommit = autocommit
+        dbapi = conn.connection.dbapi_connection
+        if driver == "psycopg2":
+            dbapi.autocommit = autocommit
+            del dbapi.get_autocommit
+        else:
+            dbapi.autocommit = MagicMock(name="autocommit_method")
+            dbapi.get_autocommit.return_value = autocommit
         conn.get_isolation_level.return_value = isolation_level
         return conn
 
@@ -302,6 +313,48 @@ class TestQueryTimeout:
         assert profiler.report.warning.call_args_list[0].kwargs["title"] == (
             "Profiling: query timeout set on a transactional connection"
         )
+
+    @pytest.mark.parametrize("driver", ["psycopg2", "pymysql"])
+    def test_a_transactional_connection_is_warned_about_on_every_driver(
+        self, profiler, driver
+    ):
+        # The PyMySQL shape is the one that matters: `autocommit` is a bound
+        # method there, so a truthiness check silently passes every connection.
+        profiler.config.query_timeout_seconds = 30
+        conn = self._conn(
+            autocommit=False, isolation_level="REPEATABLE READ", driver=driver
+        )
+        conn.exec_driver_sql.return_value.scalar.return_value = 5000
+        self._install(profiler, conn, self._adapter(self._timeout()))
+        assert profiler.report.warning.call_args_list[0].kwargs["title"] == (
+            "Profiling: query timeout set on a transactional connection"
+        )
+
+    @pytest.mark.parametrize("driver", ["psycopg2", "pymysql"])
+    def test_an_autocommit_connection_is_not_warned_about_on_every_driver(
+        self, profiler, driver
+    ):
+        profiler.config.query_timeout_seconds = 30
+        conn = self._conn(autocommit=True, driver=driver)
+        conn.exec_driver_sql.return_value.scalar.return_value = 5000
+        self._install(profiler, conn, self._adapter(self._timeout()))
+        profiler.report.warning.assert_not_called()
+
+    def test_an_unknown_driver_shape_stays_quiet(self, profiler):
+        # Neither a bool nor get_autocommit(): say nothing rather than guess.
+        profiler.config.query_timeout_seconds = 30
+        conn = self._conn()
+        del conn.connection.dbapi_connection.autocommit
+        conn.exec_driver_sql.return_value.scalar.return_value = 5000
+        self._install(profiler, conn, self._adapter(self._timeout()))
+        profiler.report.warning.assert_not_called()
+
+    def test_an_unsupported_platform_is_not_warned_about_isolation(self, profiler):
+        # No limit is applied, so there are no consequences to warn about.
+        profiler.config.query_timeout_seconds = 30
+        conn = self._conn(autocommit=False, isolation_level="REPEATABLE READ")
+        self._install(profiler, conn, self._adapter(None))
+        profiler.report.warning.assert_not_called()
 
     def test_autocommit_is_not_warned_about(self, profiler):
         # No execution option says so -- an engine built with

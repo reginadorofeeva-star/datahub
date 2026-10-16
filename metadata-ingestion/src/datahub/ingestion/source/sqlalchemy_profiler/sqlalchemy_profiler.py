@@ -983,9 +983,11 @@ class SQLAlchemyProfiler:
         self.report.warning(
             title="Profiling: max_queries_to_combine above the join limit",
             message=(
-                "Every combined statement will fail to parse and be retried one "
-                "query at a time, which is slower than leaving the queries "
-                "uncombined. Lower max_queries_to_combine to the limit or below."
+                "A combined statement above the limit fails to parse and is "
+                "retried one query at a time, which is slower than leaving the "
+                "queries uncombined. With flattening on this hits the re-route "
+                "rather than the normal path, since a flat statement does not "
+                "join. Lower max_queries_to_combine to the limit or below."
             ),
             context=(
                 f"Platform: {self.platform}; "
@@ -1021,11 +1023,22 @@ class SQLAlchemyProfiler:
         if requested == ProfilingIsolationLevel.AUTOCOMMIT.value:
             return
         try:
-            # The driver flag, not get_isolation_level(), which reports the
-            # server's level and so never says AUTOCOMMIT. It is also the only
-            # thing that sees an engine built with isolation_level=AUTOCOMMIT,
-            # which is how the Postgres source connects by default.
-            if conn.connection.dbapi_connection.autocommit:
+            # The driver's own state, not get_isolation_level(), which reports
+            # the server's level and so never says AUTOCOMMIT. It is also the
+            # only thing that sees an engine built with
+            # isolation_level=AUTOCOMMIT, which is how the Postgres source
+            # connects by default.
+            #
+            # psycopg2 exposes it as a bool attribute; PyMySQL and mysqlclient
+            # expose get_autocommit() and leave `autocommit` a method, which is
+            # always truthy.
+            dbapi = conn.connection.dbapi_connection
+            getter = getattr(dbapi, "get_autocommit", None)
+            flag = getter() if callable(getter) else getattr(dbapi, "autocommit", None)
+            if not isinstance(flag, bool):
+                # An unknown driver shape. Say nothing rather than guess.
+                return
+            if flag:
                 return
             level = requested or conn.get_isolation_level()
         except Exception:
@@ -1078,7 +1091,6 @@ class SQLAlchemyProfiler:
         seconds = self.config.query_timeout_seconds
         if seconds is None:
             return
-        self._warn_if_timeout_needs_autocommit(conn, pretty_name)
         timeout = adapter.get_query_timeout_statements(seconds)
         if timeout is None:
             if not self._query_timeout_warning_logged:
@@ -1088,6 +1100,9 @@ class SQLAlchemyProfiler:
                 )
                 self._query_timeout_warning_logged = True
             return
+        # After the support check: a platform that ignores the option has no
+        # timeout to warn about the consequences of.
+        self._warn_if_timeout_needs_autocommit(conn, pretty_name)
 
         # Driver-level, so the combiner's patched Connection.execute does not
         # count session bookkeeping as profiling queries, and so a restored

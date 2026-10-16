@@ -76,7 +76,7 @@ Only single-aggregate-over-a-whole-table queries are flattened. Anything the pro
 
 `max_distinct_per_statement` (default 5) caps how many `COUNT(DISTINCT)` columns share one statement. The default is a starting point rather than a measured optimum.
 
-`max_queries_to_combine` (default 40) caps how many **queries** share one statement — not columns. A 12-column numeric table queues 109 queries under default settings, because each column contributes several and an unsampled median adds more; a table of strings queues far fewer. Raising it cuts round trips, and with flattening on it also cuts scans, because a flattened statement is one aggregate list over one table. With flattening off each merged query is still its own aggregate, so only round trips fall.
+`max_queries_to_combine` (default 40) caps how many **queries** share one statement — not columns. A 12-column numeric table issues 109 queries under default settings, 85 of them combinable, because each column contributes several and an unsampled median adds more; a table of strings queues far fewer. Raising it cuts round trips, and with flattening on it also cuts scans, because a flattened statement is one aggregate list over one table. With flattening off each merged query is still its own aggregate, so only round trips fall.
 
 The database bounds how far it can usefully be raised: a merged statement cross-joins one subquery per query, and MySQL allows 61 tables in a join, SQLite 64. Past that every merged statement fails and is retried one query at a time. A value above the limit is therefore slower than not combining at all; the profiler warns at startup when it can tell, which it can for MySQL, MariaDB and SQLite.
 
@@ -100,7 +100,7 @@ Combining and flattening reduce how many statements run, but not how long one of
 **Pair it with `profiling_isolation_level: AUTOCOMMIT`.** The limit only contains the damage under autocommit, and the profiler warns when it is set on a transactional connection:
 
 - On Postgres a timed-out statement leaves the transaction aborted. The combiner rolls back before each of its own retries, but the per-column queries that follow — quantiles, histograms, value frequencies, sample values — do not, so the whole table loses them. Under AUTOCOMMIT only the slow column loses its metrics.
-- On MySQL the default `REPEATABLE READ` holds the read view from the first statement until the commit, so a per-statement limit does not bound the thing this option exists to bound. `AUTOCOMMIT` or `READ COMMITTED` restores the connection.
+- On MySQL the default `REPEATABLE READ` holds the read view from the first statement until the commit, so a per-statement limit does not bound the thing this option exists to bound. `AUTOCOMMIT` or `READ COMMITTED` restores the bound.
 
 Under AUTOCOMMIT, a statement that exceeds the limit does not cost the whole table. It is retried one query at a time, so columns whose own query then succeeds are still profiled and only the slow ones lose their metrics; a table is left without field profiles only when the row count itself times out.
 
