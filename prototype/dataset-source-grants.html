@@ -79,11 +79,11 @@
   .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 18px 20px; }
   .summary { width: 312px; position: sticky; top: 0; flex: 0 0 auto; }
   .shell.summary-closed .summary { display: none; }
-  .entity-head { display: flex; gap: 12px; align-items: flex-start; }
+  .entity-head { display: flex; gap: 12px; align-items: center; min-height: 42px; }
   .entity-icon { width: 42px; height: 42px; border-radius: 12px; background: #fff4d6; color: #e3a008; display: grid; place-items: center; flex: 0 0 auto; }
   .entity-icon svg { width: 22px; height: 22px; }
-  h1 { font-size: 20px; line-height: 1.2; margin: 0 0 4px; }
-  .crumb { color: var(--text-3); font-size: 13px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  h1 { font-size: 18px; line-height: 1.15; margin: 0; }
+  .crumb { color: var(--text-3); font-size: 12px; line-height: 1.2; margin-top: 2px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
   .crumb b { color: var(--text-2); font-weight: 600; }
   .head-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
   .btn { height: 36px; border-radius: 10px; padding: 0 14px; font-weight: 700; font-size: 14px; border: 1px solid transparent; display: inline-flex; align-items: center; gap: 8px; background: #fff; }
@@ -97,19 +97,21 @@
   .btn-sm { height: 30px; font-size: 13px; padding: 0 10px; }
   .linkish { border: 0; background: transparent; color: var(--primary); font-weight: 700; padding: 0; font-size: 13px; }
   .toolbar { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; gap: 8px; }
-  .banner { margin-top: 14px; border-radius: 14px; padding: 14px 14px 12px; border: 1px solid var(--line); display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; }
+  .banner { margin-top: 10px; height: 42px; border-radius: 12px; padding: 0 12px; border: 1px solid var(--line); display: flex; align-items: center; gap: 10px; overflow: hidden; }
   .banner.bad { background: #fff8f6; border-color: #f3d0cb; }
   .banner.part { background: var(--warn-bg); border-color: #f3e0b5; }
   .banner.ok { background: #f4fbf6; border-color: #cfe8d6; }
   .kicker { font-size: 12px; font-weight: 700; color: var(--text-3); letter-spacing: .02em; }
-  .banner h2 { margin: 2px 0 4px; font-size: 16px; }
+  .banner h2 { margin: 0; font-size: 14px; line-height: 1; white-space: nowrap; }
   .lead { margin: 0; color: var(--text-2); font-size: 13px; line-height: 1.45; max-width: 760px; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chips { display: flex; flex-wrap: nowrap; gap: 6px; margin: 0; min-width: 0; }
   .chip { font-size: 12px; font-weight: 700; border-radius: 999px; padding: 3px 8px; border: 1px solid var(--line); background: #fff; }
   .chip.yes { color: var(--ok); border-color: #c0deaf; background: var(--ok-bg); }
   .chip.no { color: var(--bad); border-color: #f2c1c1; background: #fff; }
   .chip.opt { color: var(--text-2); }
-  .banner-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .banner .linkish { margin-left: auto; white-space: nowrap; flex: 0 0 auto; }
+  .scenario-select { height: 36px; max-width: 190px; background: #fff; }
+  #grant-details { scroll-margin-top: 8px; }
   .segs { display: flex; flex-wrap: wrap; gap: 2px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 3px; align-self: start; }
   .segs button { border: 0; background: transparent; color: var(--text-2); border-radius: 8px; padding: 6px 8px; font-size: 12px; font-weight: 700; }
   .segs button[aria-pressed="true"] { background: var(--primary-soft); color: var(--primary); }
@@ -212,7 +214,8 @@
   @media (max-width: 1100px) {
     .summary { width: 100%; position: static; }
     .workspace { flex-direction: column; }
-    .compare, .split, .persona-grid, .banner { grid-template-columns: 1fr; }
+    .compare, .split, .persona-grid { grid-template-columns: 1fr; }
+    .banner { overflow-x: auto; }
     .seg-label { text-align: left; }
   }
 </style>
@@ -529,35 +532,30 @@ function visibleRequests() {
   return rows;
 }
 
+function bannerTitle() {
+  if (state.scenario === 'none') return 'Нет доступа к источнику';
+  if (state.scenario === 'select') return 'Доступ неполный';
+  if (state.scenario === 'read') return 'Чтение есть';
+  return 'Чтение и запись есть';
+}
+function chip(id, label) {
+  const kind = has(id) ? 'have' : needOf({ id, bundle: id === 'SELECT' || id === 'READ' ? 'read' : 'write' });
+  const cls = kind === 'have' ? 'yes' : kind === 'critical' ? 'no' : 'opt';
+  const text = kind === 'have' ? 'есть' : 'нет';
+  return `<span class="chip ${cls}">${label} · ${text}</span>`;
+}
 function bannerHtml() {
-  const v = verdict();
-  const cta = primaryCta();
-  const chips = PRIVS.filter((p) => p.bundle !== 'admin').map((p) => {
-    const kind = needOf(p);
-    const cls = kind === 'have' ? 'yes' : kind === 'critical' ? 'no' : 'opt';
-    const text = kind === 'have' ? 'есть' : 'нет';
-    return `<span class="chip ${cls}">${p.id} · ${text}</span>`;
-  }).join('');
-  const second = state.scenario === 'read' || state.scenario === 'extended'
-    ? '<button class="btn btn-ghost" type="button" data-action="request">Запросить ещё</button>'
-    : '<button class="btn btn-ghost" type="button" data-action="show-steps">Что сделать</button>';
-  const segs = SCENARIOS.map((s) => `<button type="button" data-action="scenario" data-scenario="${s.id}" aria-pressed="${s.id === state.scenario}">${esc(s.label)}</button>`).join('');
+  const writeIds = ['INSERT', 'UPDATE', 'DELETE', 'ALTER'];
+  const writeHave = writeIds.filter((id) => has(id)).length;
+  const writeChip = writeHave === writeIds.length
+    ? '<span class="chip yes">Запись · есть</span>'
+    : writeHave
+      ? '<span class="chip yes">Запись · частично</span>'
+      : '<span class="chip opt">Запись · нет</span>';
   return `<section class="banner ${tone()}" aria-label="Доступ к источнику">
-    <div>
-      <div class="kicker">Источник · Hive · prod-cluster.core.dim_account_h</div>
-      <h2>${esc(v.title)}</h2>
-      <p class="lead">${esc(v.lead)}</p>
-      <div class="chips">${chips}</div>
-      <div class="banner-actions">
-        <button class="btn ${tone() === 'part' ? 'btn-warn' : 'btn-primary'}" type="button" data-action="${cta[1]}">${esc(cta[0])}</button>
-        ${second}
-        ${canRead() ? '' : '<button class="linkish" type="button" data-action="connect">Как это будет выглядеть в Hive</button>'}
-      </div>
-    </div>
-    <div>
-      <div class="seg-label">Сценарий просмотра</div>
-      <div class="segs" role="group" aria-label="Сценарий доступа">${segs}</div>
-    </div>
+    <h2>${esc(bannerTitle())}</h2>
+    <div class="chips">${chip('SELECT', 'SELECT')}${chip('READ', 'READ')}${writeChip}</div>
+    <button class="linkish" type="button" data-action="show-steps">Подробнее</button>
   </section>`;
 }
 
@@ -578,7 +576,7 @@ function grantsHtml() {
   }).join('');
   const list = steps().map((st, i) => `<li class="${st.cls}"><span class="step-n">${st.cls === 'done' ? '✓' : i + 1}</span><div><strong>${esc(st.title)}</strong><div class="muted">${esc(st.text)}</div></div></li>`).join('');
   const error = !canRead() ? `<div class="error-box" style="margin-top:10px"><strong>Так выглядит отказ источника, не каталога.</strong><div class="mono" style="margin-top:6px">AuthorizationException: User ${esc(s.login)} does not have privilege ${has('SELECT') ? 'READ' : 'SELECT'} on ${has('SELECT') ? 'hdfs://prod-cluster/warehouse/core.db/dim_account_h' : 'core.dim_account_h'}</div></div>` : '';
-  return `<div class="compare">
+  return `<div id="grant-details"><div class="compare">
       <article><div class="tag-ok">Каталог DataHub</div><h3>Карточка вам доступна</h3><p>Схема, описание, качество и заявки видны без прав на Hive. Роль в каталоге не открывает таблицу.</p></article>
       <article><div>${srcStatus}</div><h3>СУБД Hive</h3><p>Объект <span class="mono">prod-cluster.core.dim_account_h</span>. Выполнится ли SQL, решают только гранты Ranger и HDFS.</p></article>
     </div>
@@ -598,7 +596,7 @@ function grantsHtml() {
           <p class="muted" style="margin-top:8px">Согласованная заявка не равна гранту, пока Ranger не применил роль. На вкладке «Заявки» виден процесс, здесь — фактические права.</p>
         </section>
       </div>
-    </div>`;
+    </div></div>`;
 }
 
 function requestsHtml() {
@@ -684,7 +682,11 @@ function datasetHtml() {
         <h1>dim_account_h</h1>
         <div class="crumb"><b>Table</b> · prod-cluster <span aria-hidden="true">›</span> core <span aria-hidden="true">·</span> смотрите как ${esc(s.user)}</div>
       </div>
-      <div class="head-actions"><button class="btn btn-primary" type="button" data-action="${cta[1]}">${esc(cta[0])}</button></div>
+      <div class="head-actions">
+        <label class="sr-only" for="scenario-select">Сценарий просмотра</label>
+        <select id="scenario-select" class="scenario-select" aria-label="Сценарий просмотра">${SCENARIOS.map((item) => `<option value="${item.id}" ${item.id === state.scenario ? 'selected' : ''}>${esc(item.label)}</option>`).join('')}</select>
+        <button class="btn btn-primary" type="button" data-action="${cta[1]}">${esc(cta[0])}</button>
+      </div>
     </div>
     ${bannerHtml()}
     <div class="toolbar"><button class="btn btn-ghost btn-sm" type="button" data-action="steward">Ask Data Steward</button>${excel}</div>
@@ -911,7 +913,7 @@ function onClick(e) {
     state.drawerId = null;
     if (el.dataset.go) { state.route = 'dataset'; state.tab = 'grants'; }
   }
-  else if (action === 'show-steps') { state.tab = 'grants'; state.scrollTo = 'how-to'; }
+  else if (action === 'show-steps') { state.tab = 'grants'; state.scrollTo = 'grant-details'; }
   else if (action === 'request') openRequest();
   else if (action === 'open-mine') { const open = myOpen(); if (open) { state.drawerId = open.id; state.modal = null; } }
   else if (action === 'connect') { state.modal = 'connect'; state.drawerId = null; }
@@ -990,6 +992,16 @@ function copyText(text) {
   }
 }
 document.body.addEventListener('click', onClick);
+document.body.addEventListener('change', (e) => {
+  if (e.target.id !== 'scenario-select') return;
+  state.scenario = e.target.value;
+  state.pending = null;
+  state.page = 1;
+  state.ranQuery = null;
+  state.drawerId = null;
+  state.modal = null;
+  render();
+});
 document.body.addEventListener('input', (e) => {
   if (e.target.id === 'search') { state.search = e.target.value; state.searchOpen = true; renderChrome(); }
   if (e.target.id === 'req-q') { state.searchQuery = e.target.value; state.page = 1; render(); const again = document.getElementById('req-q'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } }
