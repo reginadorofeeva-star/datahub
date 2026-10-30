@@ -1,0 +1,1027 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>dim_account_h · гранты СУБД · DataHub 1.1.0</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #f3f4f8;
+    --nav: #f5f6fa;
+    --card: #fff;
+    --text: #374066;
+    --text-2: #5f6685;
+    --text-3: #8088a3;
+    --line: #ebecf0;
+    --line-2: #e1e3ec;
+    --primary: #533fd1;
+    --primary-dark: #4c39be;
+    --primary-soft: #f1f3fd;
+    --shadow: 0 0 0 1px rgba(139, 135, 157, 0.08), 0 8px 28px rgba(55, 64, 102, 0.05);
+    --radius: 16px;
+    --font: Mulish, "Segoe UI", ui-sans-serif, system-ui, sans-serif;
+    --ok: #0d7543;
+    --ok-bg: #f1f8ee;
+    --bad: #cd0d24;
+    --bad-bg: #fbf3ef;
+    --wait: #3b2d94;
+    --wait-bg: #f1f3fd;
+    --warn: #c77100;
+    --warn-bg: #fffaeb;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body { font-family: var(--font); color: var(--text); background: var(--bg); }
+  button, input, select, textarea { font-family: inherit; color: inherit; }
+  button { cursor: pointer; }
+  button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--primary); outline-offset: 2px;
+  }
+  .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
+  .shell { height: 100%; display: grid; grid-template-columns: 232px 1fr; grid-template-rows: 64px 1fr; }
+  .shell.is-collapsed { grid-template-columns: 76px 1fr; }
+  .sidebar { grid-row: 1 / span 2; background: var(--nav); display: flex; flex-direction: column; padding: 16px 12px 12px; min-height: 0; }
+  .logo { display: flex; align-items: center; gap: 10px; padding: 0 8px 14px; border: 0; background: transparent; text-align: left; }
+  .logo-mark { width: 28px; height: 28px; border-radius: 8px; background: linear-gradient(145deg, #8c7ee0, #533fd1); color: #fff; display: grid; place-items: center; flex: 0 0 auto; }
+  .logo-word { font-weight: 700; font-size: 16px; letter-spacing: 0.01em; }
+  .shell.is-collapsed .logo-word, .shell.is-collapsed .nav-label, .shell.is-collapsed .nav-group, .shell.is-collapsed .nav-caret { display: none; }
+  .nav { display: flex; flex-direction: column; gap: 2px; overflow: auto; flex: 1; }
+  .nav-group { margin: 14px 8px 4px; font-size: 12px; font-weight: 700; color: var(--text-3); }
+  .nav-item, .nav-sub { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: transparent; border-radius: 8px; color: var(--text-2); text-align: left; }
+  .nav-item { height: 36px; padding: 0 8px; font-weight: 600; font-size: 14px; }
+  .nav-sub { height: 36px; padding: 0 8px 0 12px; font-weight: 500; font-size: 14px; }
+  .nav-item svg, .nav-sub svg { width: 18px; height: 18px; flex: 0 0 auto; color: #8088a3; }
+  .nav-item:hover, .nav-sub:hover { background: rgba(255,255,255,.7); }
+  .nav-item[aria-current="page"], .nav-sub[aria-current="page"] { background: #fff; color: var(--text); box-shadow: 0 0 0 1px rgba(108, 71, 255, 0.08), 0 1px 2px rgba(55,64,102,.06); }
+  .nav-item[aria-current="page"] svg, .nav-sub[aria-current="page"] svg { color: var(--primary); }
+  .nav-spacer { flex: 1; }
+  .topbar { display: flex; align-items: center; gap: 12px; padding: 0 16px 0 8px; }
+  .icon-btn { width: 36px; height: 36px; border-radius: 10px; border: 0; background: transparent; color: var(--text-2); display: grid; place-items: center; }
+  .icon-btn:hover { background: rgba(255,255,255,.8); }
+  .search-wrap { position: relative; flex: 1; display: flex; justify-content: center; }
+  .search { width: min(640px, 100%); height: 40px; border-radius: 999px; border: 1px solid #e6e8f0; background: #fff; display: flex; align-items: center; gap: 8px; padding: 0 8px 0 14px; box-shadow: 0 1px 2px rgba(55,64,102,.04); }
+  .search input { flex: 1; border: 0; outline: none; font-size: 14px; background: transparent; min-width: 0; }
+  .search input::placeholder { color: #9aa0b5; }
+  .kbd { border: 1px solid var(--line-2); border-radius: 6px; padding: 2px 6px; font-size: 12px; color: var(--text-3); background: #fff; }
+  .views-btn { border: 0; background: transparent; color: var(--text-2); font-weight: 600; font-size: 13px; padding: 6px 8px; border-radius: 8px; }
+  .views-btn:hover { background: var(--bg); }
+  .pop { position: absolute; top: 48px; left: 50%; transform: translateX(-50%); width: min(640px, calc(100% - 8px)); background: #fff; border-radius: 14px; box-shadow: var(--shadow); z-index: 20; padding: 8px; }
+  .pop button, .menu button { width: 100%; text-align: left; border: 0; background: transparent; border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 2px; }
+  .pop button:hover, .menu button:hover { background: var(--primary-soft); }
+  .pop small, .menu small { color: var(--text-3); }
+  .views-pop { position: relative; }
+  .views-pop .pop { width: 240px; left: auto; right: 0; transform: none; }
+  .workspace { min-height: 0; overflow: auto; display: flex; gap: 12px; align-items: flex-start; padding: 0 12px 16px; }
+  #canvas { flex: 1; min-width: 0; }
+  .card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 16px 18px 20px; }
+  .summary { width: 312px; position: sticky; top: 0; flex: 0 0 auto; }
+  .shell.summary-closed .summary { display: none; }
+  .entity-head { display: flex; gap: 12px; align-items: flex-start; }
+  .entity-icon { width: 42px; height: 42px; border-radius: 12px; background: #fff4d6; color: #e3a008; display: grid; place-items: center; flex: 0 0 auto; }
+  .entity-icon svg { width: 22px; height: 22px; }
+  h1 { font-size: 20px; line-height: 1.2; margin: 0 0 4px; }
+  .crumb { color: var(--text-3); font-size: 13px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .crumb b { color: var(--text-2); font-weight: 600; }
+  .head-actions { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .btn { height: 36px; border-radius: 10px; padding: 0 14px; font-weight: 700; font-size: 14px; border: 1px solid transparent; display: inline-flex; align-items: center; gap: 8px; background: #fff; }
+  .btn-primary { background: var(--primary); color: #fff; }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn-ghost { border-color: var(--line-2); color: var(--text); background: #fff; }
+  .btn-ghost:hover { background: var(--bg); }
+  .btn-warn { background: var(--warn); color: #fff; }
+  .btn-warn:hover { filter: brightness(.95); }
+  .btn[disabled] { opacity: .55; cursor: not-allowed; }
+  .btn-sm { height: 30px; font-size: 13px; padding: 0 10px; }
+  .linkish { border: 0; background: transparent; color: var(--primary); font-weight: 700; padding: 0; font-size: 13px; }
+  .toolbar { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; gap: 8px; }
+  .banner { margin-top: 14px; border-radius: 14px; padding: 14px 14px 12px; border: 1px solid var(--line); display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; }
+  .banner.bad { background: #fff8f6; border-color: #f3d0cb; }
+  .banner.part { background: var(--warn-bg); border-color: #f3e0b5; }
+  .banner.ok { background: #f4fbf6; border-color: #cfe8d6; }
+  .kicker { font-size: 12px; font-weight: 700; color: var(--text-3); letter-spacing: .02em; }
+  .banner h2 { margin: 2px 0 4px; font-size: 16px; }
+  .lead { margin: 0; color: var(--text-2); font-size: 13px; line-height: 1.45; max-width: 760px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .chip { font-size: 12px; font-weight: 700; border-radius: 999px; padding: 3px 8px; border: 1px solid var(--line); background: #fff; }
+  .chip.yes { color: var(--ok); border-color: #c0deaf; background: var(--ok-bg); }
+  .chip.no { color: var(--bad); border-color: #f2c1c1; background: #fff; }
+  .chip.opt { color: var(--text-2); }
+  .banner-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .segs { display: flex; flex-wrap: wrap; gap: 2px; background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 3px; align-self: start; }
+  .segs button { border: 0; background: transparent; color: var(--text-2); border-radius: 8px; padding: 6px 8px; font-size: 12px; font-weight: 700; }
+  .segs button[aria-pressed="true"] { background: var(--primary-soft); color: var(--primary); }
+  .seg-label { font-size: 11px; color: var(--text-3); font-weight: 700; margin-bottom: 4px; text-align: right; }
+  .tabs { display: flex; gap: 4px; overflow: auto; margin-top: 14px; padding-bottom: 4px; }
+  .tab { border: 0; background: transparent; color: var(--text-2); border-radius: 10px; padding: 8px 10px; font-weight: 700; font-size: 13px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
+  .tab[aria-selected="true"] { background: var(--primary-soft); color: var(--primary); }
+  .count { font-size: 12px; color: var(--text-3); background: #f4f5f8; border-radius: 999px; min-width: 18px; text-align: center; padding: 0 6px; line-height: 18px; }
+  .tab[aria-selected="true"] .count { background: #fff; color: var(--primary); }
+  .dot { width: 8px; height: 8px; border-radius: 99px; background: var(--text-3); }
+  .dot.bad { background: var(--bad); } .dot.part { background: var(--warn); } .dot.ok { background: var(--ok); }
+  .panel { margin-top: 8px; }
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .compare article, .passport, .block { border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: #fff; }
+  .compare h3, .block h3, .passport h3 { margin: 0 0 6px; font-size: 14px; }
+  .compare p, .muted { color: var(--text-2); font-size: 13px; line-height: 1.45; margin: 0; }
+  .tag-ok { color: var(--ok); font-weight: 800; font-size: 12px; }
+  .tag-bad { color: var(--bad); font-weight: 800; font-size: 12px; }
+  .tag-warn { color: var(--warn); font-weight: 800; font-size: 12px; }
+  .split { display: grid; grid-template-columns: 1.4fr .8fr; gap: 12px; }
+  .kv { display: grid; grid-template-columns: 120px 1fr; gap: 6px 8px; font-size: 13px; margin-top: 8px; }
+  .kv span { color: var(--text-3); }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; overflow-wrap: anywhere; }
+  .kv b { overflow-wrap: anywhere; }
+  .copy { border: 0; background: var(--bg); border-radius: 6px; padding: 2px 6px; font-size: 12px; font-weight: 700; color: var(--text-2); }
+  ol.steps { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  ol.steps li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; font-size: 13px; }
+  .step-n { width: 22px; height: 22px; border-radius: 99px; display: grid; place-items: center; font-size: 12px; font-weight: 800; background: var(--bg); color: var(--text-3); }
+  li.done .step-n { background: var(--ok-bg); color: var(--ok); }
+  li.now .step-n { background: var(--primary); color: #fff; }
+  li.now strong { color: var(--primary); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; font-size: 12px; color: var(--text-3); font-weight: 700; padding: 8px 10px; }
+  td { padding: 10px; border-top: 1px solid #f2f3f7; vertical-align: top; }
+  tr.click:hover td { background: #fafbfe; }
+  .status { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border-radius: 999px; font-size: 12px; font-weight: 700; border: 1px solid transparent; white-space: nowrap; }
+  .status.active { color: var(--wait); background: var(--wait-bg); border-color: #d9d4f5; }
+  .status.approved { color: var(--ok); background: var(--ok-bg); border-color: #c0deaf; }
+  .status.rejected { color: var(--bad); background: var(--bad-bg); border-color: #f2c1c1; }
+  .yes { color: var(--ok); font-weight: 800; } .no { color: var(--bad); font-weight: 800; } .opt { color: var(--text-2); font-weight: 700; }
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0; }
+  .filters button { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 700; color: var(--text-2); }
+  .filters button[aria-pressed="true"] { border-color: #d9d4f5; background: var(--primary-soft); color: var(--primary); }
+  .pager { display: flex; justify-content: flex-end; gap: 4px; margin-top: 10px; }
+  .pager button { min-width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: #fff; font-weight: 700; }
+  .pager button[aria-current="page"] { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .flow { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+  .flow-item { display: grid; grid-template-columns: 16px 1fr; gap: 8px; font-size: 13px; }
+  .rail { width: 2px; background: var(--line-2); justify-self: center; }
+  .flow-item .mark { width: 16px; height: 16px; border-radius: 99px; border: 2px solid var(--line-2); margin-top: 2px; }
+  .flow-item.on .mark { background: var(--ok); border-color: var(--ok); }
+  .flow-item.off .mark { background: #fff; border-color: var(--bad); }
+  .schema td:first-child { font-weight: 700; }
+  .lineage { display: flex; align-items: center; gap: 8px; overflow: auto; padding: 8px 0 12px; }
+  .node { border: 1px solid var(--line); background: #fff; border-radius: 12px; padding: 8px 10px; min-width: 140px; text-align: left; }
+  .node small { display: block; color: var(--text-3); font-weight: 600; }
+  .node.here { border-color: #d9d4f5; background: var(--primary-soft); }
+  .arrow { color: var(--text-3); }
+  .check { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-top: 1px solid #f2f3f7; font-size: 13px; }
+  .msg { padding: 10px 0; border-top: 1px solid #f2f3f7; }
+  .msg strong { display: block; margin-bottom: 4px; }
+  .sql { background: #1e2338; color: #e8eaf6; border-radius: 12px; padding: 12px; font-size: 12px; overflow: auto; white-space: pre; }
+  .result { margin-top: 8px; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  .error-box { background: var(--bad-bg); border: 1px solid #f2c1c1; color: #7d4242; border-radius: 12px; padding: 10px 12px; font-size: 13px; }
+  .sum-head { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+  .sec { padding: 10px 0; border-top: 1px solid #f2f3f7; }
+  .sec h3 { margin: 0 0 6px; font-size: 13px; display: flex; justify-content: space-between; align-items: center; }
+  .plus { width: 22px; height: 22px; border-radius: 6px; border: 1px solid var(--line); background: #fff; color: var(--text-2); }
+  .pills { display: flex; flex-wrap: wrap; gap: 6px; }
+  .pill { background: #f4f5f8; border-radius: 8px; padding: 4px 8px; font-size: 12px; font-weight: 700; display: inline-flex; gap: 6px; align-items: center; }
+  .owner { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; margin-top: 6px; }
+  .avatar { width: 22px; height: 22px; border-radius: 99px; background: #d9f5e5; color: var(--ok); display: grid; place-items: center; font-size: 11px; }
+  .empty { color: var(--text-3); font-size: 13px; }
+  .page-intro { max-width: 720px; }
+  .page-intro h1 { margin-bottom: 8px; }
+  .persona-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+  .persona { text-align: left; border: 1px solid var(--line); background: #fff; border-radius: 14px; padding: 12px; box-shadow: var(--shadow); }
+  .persona[aria-pressed="true"] { border-color: #d9d4f5; background: var(--primary-soft); }
+  .backdrop, .drawer-back { position: fixed; inset: 0; background: rgba(23, 27, 43, .36); z-index: 30; display: flex; align-items: center; justify-content: center; padding: 24px; }
+  .modal { width: min(680px, 100%); max-height: min(760px, 100%); overflow: auto; background: #fff; border-radius: 16px; box-shadow: var(--shadow); padding: 18px; }
+  .drawer-back { justify-content: flex-end; padding: 0; }
+  .drawer { width: min(440px, 100%); height: 100%; background: #fff; padding: 18px; overflow: auto; box-shadow: var(--shadow); }
+  .modal h2, .drawer h2 { margin: 0 0 8px; font-size: 18px; }
+  .steps-bar { display: flex; gap: 6px; margin: 8px 0 14px; }
+  .steps-bar span { height: 4px; flex: 1; border-radius: 99px; background: var(--line); }
+  .steps-bar span.on { background: var(--primary); }
+  .choices { display: flex; flex-direction: column; gap: 8px; }
+  .choice { display: grid; grid-template-columns: 18px 1fr; gap: 8px; border: 1px solid var(--line); border-radius: 12px; padding: 10px; font-size: 13px; }
+  .choice small { display: block; color: var(--text-2); font-weight: 500; }
+  label.field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; font-weight: 700; margin-top: 10px; }
+  input[type="text"], select, textarea { border: 1px solid var(--line-2); border-radius: 10px; padding: 8px 10px; font-weight: 500; font-size: 14px; }
+  textarea { min-height: 88px; resize: vertical; }
+  .modal-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(12px); background: #1e2338; color: #fff; border-radius: 999px; padding: 10px 14px; font-size: 13px; font-weight: 700; opacity: 0; pointer-events: none; transition: .2s ease; z-index: 50; }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .help-pop { position: relative; }
+  .help-pop .menu { position: absolute; left: 12px; bottom: 44px; width: 260px; background: #fff; border-radius: 12px; box-shadow: var(--shadow); padding: 6px; z-index: 15; }
+  .fab { position: fixed; right: 18px; bottom: 18px; width: 44px; height: 44px; border-radius: 99px; border: 0; background: var(--primary); color: #fff; box-shadow: 0 8px 20px rgba(83,63,209,.35); z-index: 12; font-weight: 800; }
+  .callout { background: var(--primary-soft); border-radius: 12px; padding: 10px 12px; font-size: 13px; color: var(--text); margin-top: 8px; }
+  @media (max-width: 1100px) {
+    .summary { width: 100%; position: static; }
+    .workspace { flex-direction: column; }
+    .compare, .split, .persona-grid, .banner { grid-template-columns: 1fr; }
+    .seg-label { text-align: left; }
+  }
+</style>
+</head>
+<body>
+<a class="sr-only" href="#canvas">К содержимому</a>
+<div class="shell" id="shell">
+  <aside class="sidebar">
+    <button class="logo" type="button" data-action="route" data-route="dataset" data-tab="grants">
+      <span class="logo-mark" aria-hidden="true">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 8h4M10 8h4M8 2v4M8 10v4" stroke="white" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="8" r="2" fill="white"/></svg>
+      </span>
+      <span class="logo-word">DataHub</span>
+    </button>
+    <nav class="nav" aria-label="Разделы">
+      <button class="nav-item" type="button" data-action="route" data-route="home"><span class="nav-ico" data-ico="home"></span><span class="nav-label">Home</span></button>
+      <div class="nav-group">Govern</div>
+      <button class="nav-sub" type="button" data-action="route" data-route="glossary"><span data-ico="book"></span><span class="nav-label">Glossary</span></button>
+      <button class="nav-sub" type="button" data-action="route" data-route="domains"><span data-ico="globe"></span><span class="nav-label">Domains</span></button>
+      <button class="nav-sub" type="button" data-action="route" data-route="product"><span data-ico="cube"></span><span class="nav-label">Product</span></button>
+      <button class="nav-sub" type="button" data-action="route" data-route="properties"><span data-ico="list"></span><span class="nav-label">Structured Properties</span></button>
+      <div class="nav-group">Admin</div>
+      <button class="nav-sub" type="button" data-action="route" data-route="sources"><span data-ico="plug"></span><span class="nav-label">Data Sources</span></button>
+      <button class="nav-sub" type="button" data-action="route" data-route="analytics"><span data-ico="chart"></span><span class="nav-label">Analytics</span></button>
+      <div class="nav-spacer"></div>
+      <button class="nav-item" type="button" data-action="route" data-route="profile"><span data-ico="user"></span><span class="nav-label">Profile</span></button>
+      <button class="nav-item" type="button" data-action="route" data-route="settings"><span data-ico="gear"></span><span class="nav-label">Settings</span></button>
+      <div class="help-pop">
+        <button class="nav-item" type="button" data-action="toggle-help" aria-expanded="false" aria-controls="help-pop"><span data-ico="help"></span><span class="nav-label">Help</span></button>
+        <div class="menu" id="help-pop" hidden>
+          <button type="button" data-action="tour">Короткий тур<span class="sr-only">по грантам источника</span><small>Где смотреть доступ к СУБД</small></button>
+          <button type="button" data-action="toast" data-msg="GraphQL в прототипе не подключён"><small>GraphQL</small>Открыть API</button>
+          <button type="button" disabled>DataHub v1.1.0<small>Версия референса</small></button>
+        </div>
+      </div>
+      <button class="nav-item" type="button" data-action="toast" data-msg="Это прототип, выход не выполняется"><span data-ico="out"></span><span class="nav-label">Sign out</span></button>
+    </nav>
+  </aside>
+  <header class="topbar">
+    <button class="icon-btn" type="button" data-action="collapse-nav" aria-label="Свернуть меню"><span data-ico="menu"></span></button>
+    <div class="search-wrap">
+      <form class="search" role="search" id="search-form">
+        <span data-ico="search"></span>
+        <label class="sr-only" for="search">Поиск</label>
+        <input id="search" placeholder="Search Tables, Dashboards, People, & more..." autocomplete="off" />
+        <span class="kbd">⌘ K</span>
+        <div class="views-pop">
+          <button class="views-btn" type="button" data-action="toggle-views" aria-expanded="false">View all</button>
+          <div class="pop" id="views-pop" hidden></div>
+        </div>
+      </form>
+      <div class="pop" id="search-pop" hidden></div>
+    </div>
+    <button class="icon-btn" type="button" data-action="toggle-summary" aria-label="Свернуть панель Summary"><span data-ico="panel"></span></button>
+  </header>
+  <div class="workspace">
+    <div id="canvas"></div>
+    <aside class="summary card" id="summary" aria-label="Summary"></aside>
+  </div>
+</div>
+<div id="overlay"></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<button class="fab" type="button" data-action="tour" aria-label="Подсказка по доступу к источнику">?</button>
+<script>
+const ICONS = {
+  home: '<path d="M4 11.5 12 4l8 7.5"/><path d="M7 10.5V20h10v-9.5"/>',
+  book: '<path d="M5 5.5h6.5A2.5 2.5 0 0 1 14 8v11H7.5A2.5 2.5 0 0 0 5 16.5Z"/><path d="M19 5.5h-6.5A2.5 2.5 0 0 0 10 8v11h6.5a2.5 2.5 0 0 0 2.5-2.5Z"/>',
+  globe: '<circle cx="12" cy="12" r="8"/><path d="M4 12h16M12 4c2.2 2.4 2.2 13.6 0 16M12 4c-2.2 2.4-2.2 13.6 0 16"/>',
+  cube: '<path d="M12 3 20 7.5v9L12 21 4 16.5v-9Z"/><path d="M12 12 20 7.5M12 12v9M12 12 4 7.5"/>',
+  list: '<path d="M9 7h11M9 12h11M9 17h11"/><path d="M5 7h.01M5 12h.01M5 17h.01"/>',
+  plug: '<path d="M8 8V4M16 8V4M7 8h10v3a5 5 0 0 1-10 0Z"/><path d="M12 16v4"/>',
+  chart: '<path d="M4 19V5M4 19h16"/><path d="m7 14 4-4 3 3 5-6"/>',
+  user: '<circle cx="12" cy="9" r="3"/><path d="M6 19c1.2-2.4 3-3.5 6-3.5s4.8 1.1 6 3.5"/>',
+  gear: '<circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.2M12 18.3v2.2M3.5 12h2.2M18.3 12h2.2M6 6l1.6 1.6M16.4 16.4 18 18M18 6l-1.6 1.6M7.6 16.4 6 18"/>',
+  help: '<circle cx="12" cy="12" r="8"/><path d="M9.5 9a2.5 2.5 0 1 1 3.2 2.4c-.8.3-1.2.8-1.2 1.6V14"/><path d="M12 17h.01"/>',
+  out: '<path d="M10 7V5H5v14h5v-2"/><path d="M10 12h9M16 8l4 4-4 4"/>',
+  search: '<circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/>',
+  menu: '<path d="M5 7h14M5 12h14M5 17h14"/>',
+  panel: '<rect x="4" y="5" width="16" height="14" rx="2"/><path d="M15 5v14"/>',
+  table: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M4 14h16M9 4v16"/>',
+  copy: '<rect x="8" y="8" width="10" height="12" rx="1.5"/><path d="M6 16V6h10"/>'
+};
+function ico(name) {
+  return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[name] || ''}</svg>`;
+}
+document.querySelectorAll('[data-ico]').forEach((el) => { el.innerHTML = ico(el.dataset.ico); });
+
+const PRIVS = [
+  { id: 'SELECT', bundle: 'read', plain: 'Выполнять SELECT к таблице в Hive.' },
+  { id: 'READ', bundle: 'read', plain: 'Читать файлы таблицы в HDFS. Без READ запрос с одним только SELECT обычно падает.' },
+  { id: 'INSERT', bundle: 'write', plain: 'Добавлять строки в таблицу.' },
+  { id: 'UPDATE', bundle: 'write', plain: 'Менять существующие строки.' },
+  { id: 'DELETE', bundle: 'write', plain: 'Удалять строки.' },
+  { id: 'ALTER', bundle: 'write', plain: 'Менять схему и свойства таблицы.' },
+  { id: 'CREATE', bundle: 'admin', plain: 'Создавать объекты в базе core. Для чтения и правки строк не нужно.' },
+  { id: 'DROP', bundle: 'admin', plain: 'Удалить таблицу для всех. Для аналитики почти никогда не нужно.' },
+  { id: 'INDEX', bundle: 'admin', plain: 'Строить индексы на источнике.' },
+  { id: 'LOCK', bundle: 'admin', plain: 'Блокировать таблицу на время операции.' }
+];
+const ORIGIN = {
+  SELECT: ['hive_core_select', 'g_core_readers', 'GRANT SELECT ON TABLE core.dim_account_h TO ROLE hive_core_select'],
+  READ: ['hdfs_core_read', 'g_core_hdfs', 'READ на hdfs://prod-cluster/warehouse/core.db/dim_account_h'],
+  INSERT: ['hive_core_write', 'g_core_writers', 'GRANT INSERT ON TABLE core.dim_account_h TO ROLE hive_core_write'],
+  UPDATE: ['hive_core_write', 'g_core_writers', 'GRANT UPDATE ON TABLE core.dim_account_h TO ROLE hive_core_write'],
+  DELETE: ['hive_core_write', 'g_core_writers', 'GRANT DELETE ON TABLE core.dim_account_h TO ROLE hive_core_write'],
+  ALTER: ['hive_core_write', 'g_core_writers', 'GRANT ALTER ON TABLE core.dim_account_h TO ROLE hive_core_write'],
+  CREATE: ['hive_core_admin', 'g_core_admins', 'GRANT CREATE ON DATABASE core TO ROLE hive_core_admin'],
+  DROP: ['hive_core_admin', 'g_core_admins', 'GRANT DROP ON TABLE core.dim_account_h TO ROLE hive_core_admin'],
+  INDEX: ['hive_core_admin', 'g_core_admins', 'GRANT INDEX ON TABLE core.dim_account_h TO ROLE hive_core_admin'],
+  LOCK: ['hive_core_admin', 'g_core_admins', 'GRANT LOCK ON TABLE core.dim_account_h TO ROLE hive_core_admin']
+};
+const GROUPS = [
+  ['g_core_readers', 'Даёт роль hive_core_select и грант SELECT на таблицу.'],
+  ['g_core_hdfs', 'Даёт роль hdfs_core_read и грант READ на файлы таблицы.'],
+  ['g_core_writers', 'Даёт роль hive_core_write: INSERT, UPDATE, DELETE, ALTER.']
+];
+const SCENARIOS = [
+  { id: 'none', label: 'Нет доступа', user: 'Алина Соколова', login: 'a.sokolova', job: 'Аналитик', groups: [], grants: [] },
+  { id: 'select', label: 'Только SELECT', user: 'Павел Орлов', login: 'p.orlov', job: 'Аналитик', groups: ['g_core_readers'], grants: ['SELECT'] },
+  { id: 'read', label: 'SELECT и READ', user: 'Елена Крылова', login: 'e.krylova', job: 'Аналитик', groups: ['g_core_readers', 'g_core_hdfs'], grants: ['SELECT', 'READ'] },
+  { id: 'extended', label: 'Чтение и запись', user: 'Никита Белов', login: 'n.belov', job: 'Инженер данных', groups: ['g_core_readers', 'g_core_hdfs', 'g_core_writers'], grants: ['SELECT', 'READ', 'INSERT', 'UPDATE', 'DELETE', 'ALTER'] }
+];
+const PURPOSES = [
+  ['report', 'Регулярная отчётность'],
+  ['incident', 'Разбор инцидента'],
+  ['quality', 'Проверка качества данных'],
+  ['build', 'Разработка витрины'],
+  ['other', 'Другое']
+];
+const REQUESTS = [
+  { id: 'ACC-1048', status: 'active', author: 'Мария Лебедева', recipients: ['Мария Лебедева'], iso: '2026-10-27T13:30:00', grants: ['SELECT', 'READ'], purpose: 'Регулярная отчётность', term: '90 дней', comment: 'Нужно читать таблицу для отчёта по счетам. Запись не нужна.', decision: 'Ждёт согласования Data Stewards. Это чужая заявка: она не выдаёт доступ Алине.' },
+  { id: 'ACC-1012', userKey: 'select', status: 'approved', author: 'Павел Орлов', recipients: ['Павел Орлов'], iso: '2026-09-18T09:12:00', grants: ['SELECT'], purpose: 'Регулярная отчётность', term: '180 дней', comment: 'Просил только SELECT.', decision: 'Согласовано и выдано. READ в заявке не было, поэтому на файлы HDFS права нет.' },
+  { id: 'ACC-1004', userKey: 'read', status: 'approved', author: 'Елена Крылова', recipients: ['Елена Крылова'], iso: '2026-09-02T11:05:00', grants: ['SELECT', 'READ'], purpose: 'Регулярная отчётность', term: '180 дней', comment: 'Чтение витрины счетов.', decision: 'На источнике выданы SELECT и READ.' },
+  { id: 'ACC-0991', userKey: 'extended', status: 'approved', author: 'Никита Белов', recipients: ['Никита Белов'], iso: '2026-08-20T16:40:00', grants: ['SELECT', 'READ', 'INSERT', 'UPDATE', 'DELETE', 'ALTER'], purpose: 'Разработка витрины', term: '180 дней', comment: 'Сборка и правка витрины.', decision: 'Выданы чтение и запись. DROP, CREATE, INDEX и LOCK не выдавались.' },
+  { id: 'ACC-1042', status: 'approved', author: 'Кирилл Панов', recipients: ['Мария Лебедева', 'Илья Морозов', 'Софья Белова', 'Глеб Сафонов'], iso: '2026-10-24T12:53:00', grants: ['READ', 'SELECT', 'UPDATE', 'INSERT', 'ALTER'], purpose: 'Разработка витрины', term: '90 дней', comment: 'Команде витрины нужна запись.', decision: 'Согласовано без DROP.' },
+  { id: 'ACC-1038', status: 'rejected', author: 'Дарья Семёнова', recipients: ['Артём Фомин'], iso: '2026-10-26T05:45:00', grants: ['READ', 'SELECT'], purpose: 'Другое', term: '30 дней', comment: 'Нужен доступ.', decision: 'Отклонено: не указаны задача и срок. Подайте заявку заново и напишите, зачем читать таблицу.' },
+  { id: 'ACC-1036', status: 'approved', author: 'Кирилл Панов', recipients: ['Вера Тихонова', 'Пётр Андреев'], iso: '2026-10-21T10:05:00', grants: ['READ', 'SELECT'], purpose: 'Регулярная отчётность', term: '90 дней', comment: 'Ежедневный отчёт.', decision: 'Выданы SELECT и READ.' },
+  { id: 'ACC-1033', status: 'rejected', author: 'Кирилл Панов', recipients: ['Олег Мишин'], iso: '2026-10-03T10:20:00', grants: ['READ', 'SELECT', 'UPDATE', 'INSERT', 'DROP'], purpose: 'Разбор инцидента', term: '30 дней', comment: 'Нужны все права.', decision: 'Отклонено: для разбора инцидента достаточно SELECT и READ. DROP не согласуем.' },
+  { id: 'ACC-1030', status: 'active', author: 'Мария Лебедева', recipients: ['Мария Лебедева'], iso: '2026-10-28T11:20:00', grants: ['READ', 'SELECT'], purpose: 'Проверка качества данных', term: '30 дней', comment: 'Сверка полноты за октябрь.', decision: 'Ждёт Data Stewards.' },
+  { id: 'ACC-1028', status: 'approved', author: 'Илья Морозов', recipients: ['Софья Белова'], iso: '2026-10-20T09:00:00', grants: ['READ', 'SELECT'], purpose: 'Регулярная отчётность', term: '90 дней', comment: 'Дашборд активных счетов.', decision: 'Выдано.' },
+  { id: 'ACC-1024', status: 'active', author: 'Глеб Сафонов', recipients: ['Глеб Сафонов', 'Вера Тихонова'], iso: '2026-10-29T14:22:00', grants: ['READ', 'SELECT'], purpose: 'Разбор инцидента', term: '30 дней', comment: 'Расхождение суммы остатков.', decision: 'Ждёт Data Stewards.' },
+  { id: 'ACC-1021', status: 'rejected', author: 'Пётр Андреев', recipients: ['Пётр Андреев'], iso: '2026-10-11T08:15:00', grants: ['DROP', 'ALTER', 'DELETE'], purpose: 'Другое', term: '180 дней', comment: 'Почистить старые строки.', decision: 'Отклонено: удаление данных источника согласует только владелец платформы, не стюард домена.' },
+  { id: 'ACC-1018', status: 'approved', author: 'Вера Тихонова', recipients: ['Олег Мишин'], iso: '2026-10-01T15:50:00', grants: ['READ', 'SELECT'], purpose: 'Регулярная отчётность', term: '90 дней', comment: 'Чтение для финконтроля.', decision: 'Выдано.' },
+  { id: 'ACC-1015', status: 'active', author: 'Софья Белова', recipients: ['Артём Фомин'], iso: '2026-10-25T16:10:00', grants: ['READ', 'SELECT', 'INSERT'], purpose: 'Разработка витрины', term: '90 дней', comment: 'Нужно дописать тестовую партицию.', decision: 'Ждёт Data Stewards. INSERT запрошен отдельно от чтения.' }
+];
+const QUERIES = [
+  { id: 'q1', name: 'Суточная сверка', sql: "select count(*) as rows\nfrom core.dim_account_h\nwhere updated_at >= current_date - interval '1' day" },
+  { id: 'q2', name: 'Открытые счета', sql: "select account_id, status, segment\nfrom core.dim_account_h\nwhere status = 'open'\nlimit 20" }
+];
+const COLUMNS = [
+  ['account_sk', 'BIGINT', 'Суррогатный ключ счёта'],
+  ['account_id', 'STRING', 'Бизнес-ключ счёта'],
+  ['status', 'STRING', 'open, closed или frozen'],
+  ['opened_dt', 'DATE', 'Дата открытия'],
+  ['closed_dt', 'DATE', 'Дата закрытия, если есть'],
+  ['segment', 'STRING', 'Сегмент клиента'],
+  ['country_code', 'STRING', 'Страна обслуживания'],
+  ['updated_at', 'TIMESTAMP', 'Когда строка последний раз собрана']
+];
+const DATASETS = [
+  { name: 'dim_account_h', path: 'prod-cluster.core', type: 'Table', here: true },
+  { name: 'stg_accounts', path: 'prod-cluster.staging', type: 'Table', here: false },
+  { name: 'rpt_active_accounts', path: 'prod-cluster.mart', type: 'Table', here: false }
+];
+
+const state = {
+  route: 'dataset',
+  tab: 'grants',
+  scenario: 'none',
+  navCollapsed: false,
+  summaryOpen: true,
+  helpOpen: false,
+  viewsOpen: false,
+  search: '',
+  searchOpen: false,
+  view: 'All',
+  filter: 'all',
+  page: 1,
+  sort: 'iso',
+  dir: 'desc',
+  pageSize: 8,
+  modal: null,
+  modalStep: 1,
+  tourStep: 1,
+  drawerId: null,
+  selected: [],
+  purpose: 'report',
+  term: '90',
+  comment: '',
+  dangerOk: false,
+  pending: null,
+  ranQuery: null,
+  lineageId: null,
+  tags: ['Tier 1', 'PII'],
+  terms: ['Account'],
+  docsOpen: false,
+  tagEdit: false,
+  scrollTo: null
+};
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+function scenario() { return SCENARIOS.find((s) => s.id === state.scenario); }
+function has(id) { return scenario().grants.includes(id); }
+function canRead() { return has('SELECT') && has('READ'); }
+function tone() { if (!has('SELECT') && !has('READ')) return 'bad'; if (!canRead()) return 'part'; return 'ok'; }
+function fmt(iso) { const [d, t] = iso.split('T'); const [y, m, day] = d.split('-'); return `${day}.${m}.${y} ${t.slice(0, 5)}`; }
+function purposeLabel(id) { return (PURPOSES.find((p) => p[0] === id) || PURPOSES[0])[1]; }
+function myOpen() {
+  if (state.pending && state.pending.userKey === state.scenario) return state.pending;
+  return REQUESTS.find((r) => r.userKey === state.scenario && r.status === 'active') || null;
+}
+function allRequests() { return (state.pending ? [state.pending] : []).concat(REQUESTS); }
+function needOf(p) {
+  if (has(p.id)) return 'have';
+  if (p.bundle === 'read') return 'critical';
+  if (p.bundle === 'admin') return 'admin';
+  return 'optional';
+}
+function needLabel(kind) {
+  if (kind === 'have') return ['Есть', 'yes'];
+  if (kind === 'critical') return ['Нет', 'no'];
+  if (kind === 'admin') return ['Нет, это администрирование', 'opt'];
+  return ['Нет, для чтения не нужно', 'opt'];
+}
+function defaultComment() {
+  if (state.scenario === 'select') return 'SELECT уже есть. Запросы не выполняются: нет READ на файлы таблицы в HDFS.';
+  if (state.scenario === 'read' || state.scenario === 'extended') return 'Чтение уже есть. Нужна только точечная довыдача, DROP и CREATE не нужны.';
+  return 'Нужно читать таблицу для регулярного отчёта по счетам. Запись в источник не нужна.';
+}
+function steps() {
+  const open = myOpen();
+  const account = { title: 'Учётка в кластере prod-cluster', text: `Логин ${scenario().login} найден. Отдельно заводить пользователя не нужно.`, cls: 'done' };
+  if (state.scenario === 'none') {
+    return [
+      account,
+      { title: 'Для чтения нужны оба гранта: SELECT и READ', text: 'SELECT разрешает указать таблицу в запросе. READ разрешает прочитать её файлы.', cls: 'done' },
+      { title: open ? `Заявка ${open.id} уже создана` : 'Подать заявку на SELECT и READ', text: open ? 'Вторую такую же создавать не нужно. Допишите комментарий, если стюард попросит уточнение.' : 'Укажите задачу и срок. Не отмечайте DROP.', cls: open ? 'now' : 'now' },
+      { title: 'Дождаться согласования Data Stewards', text: 'Обычно 2 рабочих дня. После согласия права появятся в Ranger примерно за 15 минут.', cls: open ? 'now' : 'todo' },
+      { title: 'Повторить запрос', text: 'Пока грантов нет, кнопка запуска запроса на вкладке «Запросы» недоступна.', cls: 'todo' }
+    ];
+  }
+  if (state.scenario === 'select') {
+    return [
+      account,
+      { title: 'SELECT уже выдан', text: 'Роль hive_core_select через группу g_core_readers.', cls: 'done' },
+      { title: 'Запросите READ', text: open ? `Заявка ${open.id} на READ уже на согласовании.` : 'Без READ на hdfs://prod-cluster/warehouse/core.db/dim_account_h запрос падает, хотя SELECT есть.', cls: 'now' },
+      { title: 'Дождаться выдачи и повторить запрос', text: 'Новый SELECT просить не нужно.', cls: 'todo' }
+    ];
+  }
+  if (state.scenario === 'read') {
+    return [
+      account,
+      { title: 'SELECT и READ выданы', text: 'Этого достаточно, чтобы читать таблицу.', cls: 'done' },
+      { title: 'Подключитесь и выполните запрос', text: 'Строка подключения и пример SQL — в «Как подключиться».', cls: 'now' },
+      { title: 'Запись — только если она нужна задаче', text: 'INSERT, UPDATE, DELETE и ALTER запрашивайте отдельно. DROP для отчёта не нужен.', cls: 'todo' }
+    ];
+  }
+  return [
+    account,
+    { title: 'Чтение и запись уже есть', text: 'SELECT, READ, INSERT, UPDATE, DELETE, ALTER.', cls: 'done' },
+    { title: 'Можно работать с источником', text: 'Подключение то же, что у аналитиков, права шире.', cls: 'now' },
+    { title: 'CREATE, DROP, INDEX и LOCK не выданы', text: 'Это права администратора источника. Нужны только если задача прямо требует их.', cls: 'todo' }
+  ];
+}
+function verdict() {
+  const open = myOpen();
+  if (state.scenario === 'none') {
+    return {
+      title: 'Нет доступа к источнику',
+      lead: open
+        ? `Карточка датасета открыта, но в Hive нет ни SELECT, ни READ — запрос не выполнится. Заявка ${open.id} уже на согласовании, вторую создавать не нужно.`
+        : 'Карточка датасета открыта, но в Hive нет ни SELECT, ни READ. Пока их не выдадут, SQL к таблице завершится ошибкой доступа.'
+    };
+  }
+  if (state.scenario === 'select') {
+    return {
+      title: 'Доступ неполный',
+      lead: 'SELECT на таблицу есть, READ на файлы в HDFS нет. Такой набор выглядит как доступ, но запрос к Hive обычно падает с ошибкой авторизации.'
+    };
+  }
+  if (state.scenario === 'read') {
+    return {
+      title: 'Читать источник можно',
+      lead: 'Есть SELECT и READ — этого достаточно для запросов. Записывать и менять строки нельзя, и для отчёта это нормально.'
+    };
+  }
+  return {
+    title: 'Есть доступ на чтение и запись',
+    lead: 'Выданы SELECT, READ, INSERT, UPDATE, DELETE и ALTER. Для обычной работы этого хватает. CREATE, DROP, INDEX и LOCK не выданы.'
+  };
+}
+function primaryCta() {
+  const open = myOpen();
+  if (open && (state.scenario === 'none' || state.scenario === 'select')) return ['Открыть заявку ' + open.id, 'open-mine'];
+  if (state.scenario === 'none') return ['Запросить SELECT и READ', 'request'];
+  if (state.scenario === 'select') return ['Запросить READ', 'request'];
+  return ['Как подключиться', 'connect'];
+}
+function visibleRequests() {
+  const q = state.searchQuery ? state.searchQuery.toLowerCase() : '';
+  let rows = allRequests().filter((r) => {
+    if (state.filter === 'mine' && r.userKey !== state.scenario) return false;
+    if (state.filter !== 'all' && state.filter !== 'mine' && r.status !== state.filter) return false;
+    if (q && !`${r.id} ${r.author} ${r.recipients.join(' ')} ${r.grants.join(' ')}`.toLowerCase().includes(q)) return false;
+    return true;
+  });
+  rows.sort((a, b) => {
+    const av = a[state.sort] || '';
+    const bv = b[state.sort] || '';
+    return state.dir === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
+  });
+  return rows;
+}
+
+function bannerHtml() {
+  const v = verdict();
+  const cta = primaryCta();
+  const chips = PRIVS.filter((p) => p.bundle !== 'admin').map((p) => {
+    const kind = needOf(p);
+    const cls = kind === 'have' ? 'yes' : kind === 'critical' ? 'no' : 'opt';
+    const text = kind === 'have' ? 'есть' : 'нет';
+    return `<span class="chip ${cls}">${p.id} · ${text}</span>`;
+  }).join('');
+  const second = state.scenario === 'read' || state.scenario === 'extended'
+    ? '<button class="btn btn-ghost" type="button" data-action="request">Запросить ещё</button>'
+    : '<button class="btn btn-ghost" type="button" data-action="show-steps">Что сделать</button>';
+  const segs = SCENARIOS.map((s) => `<button type="button" data-action="scenario" data-scenario="${s.id}" aria-pressed="${s.id === state.scenario}">${esc(s.label)}</button>`).join('');
+  return `<section class="banner ${tone()}" aria-label="Доступ к источнику">
+    <div>
+      <div class="kicker">Источник · Hive · prod-cluster.core.dim_account_h</div>
+      <h2>${esc(v.title)}</h2>
+      <p class="lead">${esc(v.lead)}</p>
+      <div class="chips">${chips}</div>
+      <div class="banner-actions">
+        <button class="btn ${tone() === 'part' ? 'btn-warn' : 'btn-primary'}" type="button" data-action="${cta[1]}">${esc(cta[0])}</button>
+        ${second}
+        ${canRead() ? '' : '<button class="linkish" type="button" data-action="connect">Как это будет выглядеть в Hive</button>'}
+      </div>
+    </div>
+    <div>
+      <div class="seg-label">Сценарий просмотра</div>
+      <div class="segs" role="group" aria-label="Сценарий доступа">${segs}</div>
+    </div>
+  </section>`;
+}
+
+function grantsHtml() {
+  const s = scenario();
+  const srcStatus = canRead() ? '<span class="tag-ok">запрос выполнится</span>' : (has('SELECT') ? '<span class="tag-warn">запрос, скорее всего, упадёт</span>' : '<span class="tag-bad">запроса нет</span>');
+  const rows = PRIVS.map((p) => {
+    const [label, cls] = needLabel(needOf(p));
+    const [role, group, sql] = ORIGIN[p.id];
+    const how = has(p.id)
+      ? `Роль ${role} через группу ${group}`
+      : `Появится с ролью ${role}, если вас включат в ${group}`;
+    return `<tr><td><strong>${p.id}</strong><div class="muted">${esc(p.plain)}</div></td><td class="${cls}">${esc(label)}</td><td>${esc(how)}<div class="mono muted">${esc(sql)}</div></td></tr>`;
+  }).join('');
+  const groupFlow = GROUPS.map(([name, text]) => {
+    const on = s.groups.includes(name);
+    return `<div class="flow-item ${on ? 'on' : 'off'}"><span class="mark"></span><div><strong>${name}</strong> · ${on ? 'вы в группе' : 'вас в группе нет'}<div class="muted">${esc(text)}</div></div></div>`;
+  }).join('');
+  const list = steps().map((st, i) => `<li class="${st.cls}"><span class="step-n">${st.cls === 'done' ? '✓' : i + 1}</span><div><strong>${esc(st.title)}</strong><div class="muted">${esc(st.text)}</div></div></li>`).join('');
+  const error = !canRead() ? `<div class="error-box" style="margin-top:10px"><strong>Так выглядит отказ источника, не каталога.</strong><div class="mono" style="margin-top:6px">AuthorizationException: User ${esc(s.login)} does not have privilege ${has('SELECT') ? 'READ' : 'SELECT'} on ${has('SELECT') ? 'hdfs://prod-cluster/warehouse/core.db/dim_account_h' : 'core.dim_account_h'}</div></div>` : '';
+  return `<div class="compare">
+      <article><div class="tag-ok">Каталог DataHub</div><h3>Карточка вам доступна</h3><p>Схема, описание, качество и заявки видны без прав на Hive. Роль в каталоге не открывает таблицу.</p></article>
+      <article><div>${srcStatus}</div><h3>СУБД Hive</h3><p>Объект <span class="mono">prod-cluster.core.dim_account_h</span>. Выполнится ли SQL, решают только гранты Ranger и HDFS.</p></article>
+    </div>
+    <div class="split">
+      <div>
+        <section class="block" id="how-to"><h3>Что сделать</h3><p class="muted">Смотрим от лица ${esc(s.user)}, ${esc(s.login)}. Права проверяются на таблице в Hive, не на датасете.</p><ol class="steps">${list}</ol>${error}</section>
+        <section class="block" style="margin-top:12px"><h3>Гранты на объект источника</h3><table><thead><tr><th>Грант</th><th>Статус</th><th>Откуда берётся</th></tr></thead><tbody>${rows}</tbody></table></section>
+      </div>
+      <div>
+        <section class="passport"><h3>Паспорт источника</h3>
+          <div class="kv"><span>Платформа</span><b>Hive</b><span>Кластер</span><b>prod-cluster</b><span>База</span><b>core</b><span>Таблица</span><b>dim_account_h</b><span>Файлы</span><b class="mono">hdfs://prod-cluster/warehouse/core.db/dim_account_h</b></div>
+          <div style="margin-top:8px;display:flex;gap:8px"><button class="copy" type="button" data-action="copy" data-copy="prod-cluster.core.dim_account_h">Копировать имя</button><button class="copy" type="button" data-action="copy" data-copy="hdfs://prod-cluster/warehouse/core.db/dim_account_h">Копировать путь</button></div>
+          <p class="muted" style="margin-top:8px">Согласующий: Data Stewards · anna.steward. Срок ответа около 2 рабочих дней.</p>
+        </section>
+        <section class="block" style="margin-top:12px"><h3>Как собирается доступ</h3>
+          <div class="flow"><div class="flow-item on"><span class="mark"></span><div><strong>${esc(s.login)}</strong><div class="muted">Учётная запись в prod-cluster есть.</div></div></div>${groupFlow}</div>
+          <p class="muted" style="margin-top:8px">Согласованная заявка не равна гранту, пока Ranger не применил роль. На вкладке «Заявки» виден процесс, здесь — фактические права.</p>
+        </section>
+      </div>
+    </div>`;
+}
+
+function requestsHtml() {
+  const rows = visibleRequests();
+  const pages = Math.max(1, Math.ceil(rows.length / state.pageSize));
+  state.page = Math.min(state.page, pages);
+  const slice = rows.slice((state.page - 1) * state.pageSize, state.page * state.pageSize);
+  const filters = [['all', 'Все'], ['mine', 'Мои'], ['active', 'Активна'], ['approved', 'Согласовано'], ['rejected', 'Отклонено']];
+  const body = slice.map((r) => {
+    const extra = r.recipients.length > 1 ? ` <span class="chip opt">+${r.recipients.length - 1}</span>` : '';
+    const status = r.status === 'active' ? 'Активна' : r.status === 'approved' ? 'Согласовано' : 'Отклонено';
+    const mine = r.userKey === state.scenario ? ' style="box-shadow:inset 3px 0 0 var(--primary)"' : '';
+    return `<tr class="click" tabindex="0" data-action="open-request" data-id="${esc(r.id)}"${mine}><td><strong>${esc(r.id)}</strong></td><td><span class="status ${r.status}">${status}</span></td><td>${esc(r.author)}</td><td>${esc(r.recipients[0])}${extra}</td><td>${fmt(r.iso)}</td><td>${esc(r.grants.join(', '))}</td></tr>`;
+  }).join('') || '<tr><td colspan="6" class="empty">Таких заявок нет. Сбросьте фильтр или создайте новую.</td></tr>';
+  const pager = Array.from({ length: pages }, (_, i) => `<button type="button" data-action="page" data-page="${i + 1}" ${state.page === i + 1 ? 'aria-current="page"' : ''}>${i + 1}</button>`).join('');
+  return `<div class="filters" role="group" aria-label="Фильтр заявок">${filters.map(([id, label]) => `<button type="button" data-action="filter" data-filter="${id}" aria-pressed="${state.filter === id}">${label}</button>`).join('')}<input id="req-q" type="text" placeholder="Номер, имя, грант" value="${esc(state.searchQuery || '')}" style="margin-left:auto;max-width:220px" /></div>
+    <table><thead><tr><th>Номер заявки</th><th><button class="linkish" type="button" data-action="sort" data-sort="status">Статус</button></th><th>Автор заявки</th><th>Получатель</th><th><button class="linkish" type="button" data-action="sort" data-sort="iso">Дата и время</button></th><th>Тип доступа</th></tr></thead><tbody>${body}</tbody></table>
+    <div class="pager"><button type="button" data-action="page" data-page="${state.page - 1}" ${state.page === 1 ? 'disabled' : ''} aria-label="Предыдущая">‹</button>${pager}<button type="button" data-action="page" data-page="${state.page + 1}" ${state.page === pages ? 'disabled' : ''} aria-label="Следующая">›</button></div>
+    <p class="muted">Заявка просит гранты на <span class="mono">core.dim_account_h</span> в Hive. Она не выдаёт роль в каталоге.</p>`;
+}
+
+function queriesHtml() {
+  return QUERIES.map((q) => {
+    const ran = state.ranQuery === q.id;
+    let result = '';
+    if (ran && canRead()) {
+      result = q.id === 'q1'
+        ? '<div class="result"><table><tr><th>rows</th></tr><tr><td>18420</td></tr></table></div>'
+        : '<div class="result"><table><tr><th>account_id</th><th>status</th><th>segment</th></tr><tr><td>A-10031</td><td>open</td><td>retail</td></tr><tr><td>A-10088</td><td>open</td><td>sme</td></tr></table></div>';
+    } else if (ran) {
+      result = `<div class="error-box" style="margin-top:8px">Запрос не отправлялся в Hive. Не хватает ${has('SELECT') ? 'READ на файлы таблицы' : 'SELECT и READ'}.</div>`;
+    }
+    return `<article class="block" style="margin-bottom:10px"><h3>${esc(q.name)}</h3><pre class="sql">${esc(q.sql)}</pre><div style="margin-top:8px"><button class="btn btn-primary btn-sm" type="button" data-action="run-query" data-id="${q.id}">${canRead() ? 'Выполнить' : 'Почему не выполнится'}</button></div>${result}</article>`;
+  }).join('') + '<p class="muted">Кнопка ходит в источник. Метаданные на соседних вкладках для этого не нужны.</p>';
+}
+
+function otherPanels() {
+  if (state.tab === 'columns') {
+    return `<table class="schema"><thead><tr><th>Колонка</th><th>Тип</th><th>Описание</th></tr></thead><tbody>${COLUMNS.map((c) => `<tr><td>${c[0]}</td><td class="mono">${c[1]}</td><td>${esc(c[2])}</td></tr>`).join('')}</tbody></table><p class="muted">Схему видно без грантов СУБД. Это описание в каталоге, не доступ к строкам.</p>`;
+  }
+  if (state.tab === 'lineage') {
+    const nodes = [['stg_accounts', 'Hive · staging'], ['stg_account_status', 'Hive · staging'], ['dim_account_h', 'эта таблица'], ['rpt_active_accounts', 'Hive · mart']];
+    const note = state.lineageId ? DATASETS.concat([{ name: 'stg_account_status' }]).find((d) => d.name === state.lineageId) : null;
+    return `<div class="lineage">${nodes.map((n, i) => `${i ? '<span class="arrow">→</span>' : ''}<button class="node ${n[0] === 'dim_account_h' ? 'here' : ''}" type="button" data-action="lineage" data-id="${n[0]}"><strong>${n[0]}</strong><small>${n[1]}</small></button>`).join('')}</div><p class="muted">${note && note.name !== 'dim_account_h' ? `У ${esc(state.lineageId)} свои гранты на свой объект Hive. Доступ к dim_account_h их не даёт и не забирает.` : 'Линия показывает происхождение. Права по ней не наследуются.'}</p>`;
+  }
+  if (state.tab === 'quality') {
+    const checks = [['Полнота account_id', 'ok', '0 пустых'], ['Уникальность account_sk', 'ok', 'дублей нет'], ['Допустимые status', 'ok', 'только open, closed, frozen'], ['Свежесть updated_at', 'bad', 'старше 2 дней'], ['Доля пустых segment', 'ok', '0,4%']];
+    return checks.map((c) => `<div class="check"><span>${c[0]}</span><span class="${c[1] === 'ok' ? 'yes' : 'no'}">${c[1] === 'ok' ? 'Пройдена' : 'Не пройдена'} · ${c[2]}</span></div>`).join('') + '<p class="muted">Проверки читают профили в каталоге. Красный статус не чинится заявкой на грант и сам по себе доступ не выдаёт.</p>';
+  }
+  if (state.tab === 'contracts') {
+    return '<article class="block"><h3>Схема core.dim_account_h</h3><p class="muted">Владелец контракта — Data Stewards. Обязательные поля: account_sk и account_id. Контракт описывает ожидания к данным, а не список выданных грантов.</p></article>';
+  }
+  if (state.tab === 'comms') {
+    return `<article class="msg"><strong>anna.steward · Data Stewards</strong><p class="muted">Не запрашивайте DROP и CREATE для аналитических задач. Для чтения согласуем SELECT вместе с READ.</p></article><article class="msg"><strong>Платформа данных</strong><p class="muted">После статуса «Согласовано» Ranger применяет роль около 15 минут. До этого вкладка «Гранты СУБД» ещё показывает старое состояние.</p></article>`;
+  }
+  return queriesHtml();
+}
+
+function datasetHtml() {
+  const s = scenario();
+  const cta = primaryCta();
+  const tabs = [
+    ['columns', 'Колонки', COLUMNS.length],
+    ['lineage', 'Lineage', 4],
+    ['quality', 'Проверки качества', 5],
+    ['contracts', 'Контракты', 1],
+    ['comms', 'Коммуникации', 2],
+    ['grants', 'Гранты СУБД', null],
+    ['requests', 'Заявки', allRequests().length],
+    ['queries', 'Запросы', QUERIES.length]
+  ];
+  const tabBtns = tabs.map(([id, label, count]) => {
+    const dot = id === 'grants' ? `<span class="dot ${tone()}"></span>` : '';
+    const badge = count == null ? '' : `<span class="count">${count}</span>`;
+    return `<button class="tab" type="button" role="tab" id="tab-${id}" aria-selected="${state.tab === id}" aria-controls="panel" data-action="tab" data-tab="${id}">${dot}${label}${badge}</button>`;
+  }).join('');
+  const body = state.tab === 'grants' ? grantsHtml() : state.tab === 'requests' ? requestsHtml() : otherPanels();
+  const excel = state.tab === 'requests' ? '<button class="btn btn-ghost btn-sm" type="button" data-action="excel">Excel</button>' : '';
+  return `<article class="card">
+    <div class="entity-head">
+      <div class="entity-icon" aria-hidden="true">${ico('table')}</div>
+      <div>
+        <h1>dim_account_h</h1>
+        <div class="crumb"><b>Table</b> · prod-cluster <span aria-hidden="true">›</span> core <span aria-hidden="true">·</span> смотрите как ${esc(s.user)}</div>
+      </div>
+      <div class="head-actions"><button class="btn btn-primary" type="button" data-action="${cta[1]}">${esc(cta[0])}</button></div>
+    </div>
+    ${bannerHtml()}
+    <div class="toolbar"><button class="btn btn-ghost btn-sm" type="button" data-action="steward">Ask Data Steward</button>${excel}</div>
+    <div class="tabs" role="tablist">${tabBtns}</div>
+    <div class="panel" id="panel" role="tabpanel">${body}</div>
+  </article>`;
+}
+
+function simplePage(title, text) {
+  return `<article class="card page-intro"><h1>${esc(title)}</h1><p class="muted">${esc(text)}</p><p style="margin-top:14px"><button class="btn btn-primary" type="button" data-action="route" data-route="dataset" data-tab="grants">Открыть dim_account_h</button></p></article>`;
+}
+function profileHtml() {
+  const cards = SCENARIOS.map((s) => `<button class="persona" type="button" data-action="scenario" data-scenario="${s.id}" data-go="dataset" aria-pressed="${s.id === state.scenario}"><strong>${esc(s.user)}</strong><div class="muted">${esc(s.job)} · ${esc(s.login)}</div><div style="margin-top:6px">${esc(s.label)}</div></button>`).join('');
+  return `<article class="card page-intro"><h1>От чьего лица смотреть</h1><p class="muted">Прототип одной и той же таблицы. Меняется только человек и его гранты на источник Hive, не содержимое датасета.</p><div class="persona-grid">${cards}</div></article>`;
+}
+function renderPage() {
+  const canvas = document.getElementById('canvas');
+  const pages = {
+    home: simplePage('Home', 'В прототипе открыта карточка dim_account_h. С неё видно, есть ли гранты на таблицу в Hive.'),
+    glossary: simplePage('Glossary', 'Термин Account описывает поле, но не выдаёт доступ к строкам.'),
+    domains: simplePage('Domains', 'Домен Customer группирует активы каталога. Членство в домене не добавляет в группы Hive.'),
+    product: simplePage('Product', 'Продукт данных связывает таблицы для людей. Подключение к СУБД живёт на каждой таблице отдельно.'),
+    properties: simplePage('Structured Properties', 'Свойства вроде «Класс данных» описывают актив. Они не заменяют гранты Ranger.'),
+    sources: simplePage('Data Sources', 'Источник этой таблицы — кластер Hive prod-cluster, база core. Гранты приходят из Ranger и HDFS, не из роли каталога.'),
+    analytics: simplePage('Analytics', 'Здесь была бы статистика каталога. Она не показывает, может ли конкретный человек прочитать таблицу.'),
+    settings: simplePage('Settings', 'Внешний вид собран по навигатору DataHub 1.1.0. Переключатель сценария на карточке нужен только в прототипе.')
+  };
+  canvas.innerHTML = state.route === 'dataset' ? datasetHtml() : state.route === 'profile' ? profileHtml() : pages[state.route];
+  document.querySelectorAll('.nav-item, .nav-sub').forEach((btn) => {
+    btn.setAttribute('aria-current', btn.dataset.route === state.route && state.route !== 'dataset' ? 'page' : 'false');
+  });
+}
+function renderSummary() {
+  const el = document.getElementById('summary');
+  el.hidden = state.route !== 'dataset';
+  if (state.route !== 'dataset') return;
+  const doc = 'Историческая таблица счетов. Одна строка — состояние счёта на конец дня. Строка попадает в выборку, если счёт был открыт или по нему было движение.';
+  const shown = state.docsOpen ? doc : doc.slice(0, 110) + '…';
+  el.innerHTML = `<div class="sum-head"><div class="entity-icon" aria-hidden="true">${ico('table')}</div><div><strong>dim_account_h</strong><div class="muted">Table · Hive</div></div></div>
+    <section class="sec"><h3>Documentation</h3><p class="muted">${esc(shown)}</p><button class="linkish" type="button" data-action="docs">${state.docsOpen ? 'Свернуть' : 'Развернуть'}</button></section>
+    <section class="sec"><h3>Owners</h3><div class="owner"><span class="avatar">DS</span> Data Stewards</div><div class="owner"><span class="avatar">A</span> anna.steward</div></section>
+    <section class="sec"><h3>Domain</h3><button class="pill" type="button" data-action="toast" data-msg="Домен группирует каталог и не даёт грант на Hive">Customer</button></section>
+    <section class="sec"><h3>Data Product <button class="plus" type="button" data-action="toast" data-msg="Продукт в прототипе не создаётся" aria-label="Добавить продукт">+</button></h3><div class="empty">Нет продукта</div></section>
+    <section class="sec"><h3>Tags <button class="plus" type="button" data-action="edit-tags" aria-label="Добавить тег">+</button></h3><div class="pills">${state.tags.map((t) => `<span class="pill">${esc(t)} <button class="linkish" type="button" data-action="drop-tag" data-tag="${esc(t)}" aria-label="Убрать ${esc(t)}">×</button></span>`).join('')}</div>${state.tagEdit ? '<input id="new-tag" type="text" placeholder="Новый тег" style="margin-top:8px;width:100%" />' : ''}</section>
+    <section class="sec"><h3>Terms</h3><div class="pills">${state.terms.map((t) => `<span class="pill">${esc(t)}</span>`).join('')}</div></section>
+    <section class="sec"><h3>Класс данных</h3><span class="pill">Конфиденциально</span></section>
+    <section class="sec"><h3>Юридическое лицо</h3><div class="empty">Не задано</div></section>`;
+}
+function renderChrome() {
+  document.getElementById('shell').classList.toggle('is-collapsed', state.navCollapsed);
+  document.getElementById('shell').classList.toggle('summary-closed', !state.summaryOpen);
+  document.getElementById('help-pop').hidden = !state.helpOpen;
+  document.querySelector('[data-action="toggle-help"]').setAttribute('aria-expanded', String(state.helpOpen));
+  const views = document.getElementById('views-pop');
+  views.hidden = !state.viewsOpen;
+  views.innerHTML = ['All', 'Customer', 'My assets'].map((v) => `<button type="button" data-action="view" data-view="${v}"><strong>${v}</strong><small>${v === state.view ? 'выбрано' : 'переключить представление'}</small></button>`).join('');
+  const pop = document.getElementById('search-pop');
+  const q = state.search.trim().toLowerCase();
+  if (!state.searchOpen) pop.hidden = true;
+  else {
+    const items = DATASETS.filter((d) => !q || d.name.includes(q) || d.path.includes(q));
+    pop.hidden = false;
+    pop.innerHTML = items.length ? items.map((d) => `<button type="button" data-action="pick-dataset" data-here="${d.here}"><strong>${esc(d.name)}</strong><small>${esc(d.type)} · ${esc(d.path)}</small></button>`).join('') : '<div class="empty" style="padding:8px">Ничего не найдено</div>';
+  }
+}
+function choiceHtml() {
+  return `<div class="choices">${PRIVS.map((p) => {
+    const owned = has(p.id);
+    const checked = state.selected.includes(p.id) ? 'checked' : '';
+    return `<label class="choice"><input type="checkbox" data-grant="${p.id}" ${checked} ${owned ? 'disabled' : ''} /><span><strong>${p.id}</strong>${owned ? ' · уже есть' : ''}<small>${esc(p.plain)}</small></span></label>`;
+  }).join('')}</div><p class="muted" style="margin-top:8px">Для чтения отмечайте только недостающие SELECT и READ. DROP удалит таблицу у всех.</p>`;
+}
+function renderOverlay() {
+  const root = document.getElementById('overlay');
+  if (state.drawerId) {
+    const r = allRequests().find((x) => x.id === state.drawerId);
+    if (!r) { state.drawerId = null; }
+    else {
+      const status = r.status === 'active' ? 'Активна' : r.status === 'approved' ? 'Согласовано' : 'Отклонено';
+      root.innerHTML = `<div class="drawer-back" data-action="close"><aside class="drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title"><button class="linkish" type="button" data-action="close">Закрыть</button><h2 id="drawer-title">${esc(r.id)}</h2><span class="status ${r.status}">${status}</span><div class="kv"><span>Объект</span><b>Hive core.dim_account_h</b><span>Автор</span><b>${esc(r.author)}</b><span>Кому</span><b>${esc(r.recipients.join(', '))}</b><span>Когда</span><b>${fmt(r.iso)}</b><span>Гранты</span><b>${esc(r.grants.join(', '))}</b><span>Зачем</span><b>${esc(r.purpose)}</b><span>Срок</span><b>${esc(r.term)}</b></div><p style="margin-top:12px">${esc(r.comment)}</p><div class="callout">${esc(r.decision)}</div>${r.status === 'rejected' ? '<div class="modal-actions"><span></span><button class="btn btn-primary" type="button" data-action="request">Подать снова</button></div>' : ''}</aside></div>`;
+      return;
+    }
+  }
+  if (state.modal === 'tour') {
+    const slides = [
+      ['Сначала ответ, потом таблица', 'Полоса над вкладками говорит, выполнится ли запрос к Hive. Открытая карточка сама по себе этого не гарантирует.'],
+      ['Гранты — про источник', 'SELECT и READ относятся к prod-cluster.core.dim_account_h. Роль в DataHub их не заменяет. Если есть только SELECT, запрос всё равно может упасть.'],
+      ['Если права нет — один следующий шаг', 'Кнопка называет конкретное действие: открыть уже созданную заявку, запросить READ или показать, как подключиться. Повторную заявку прототип не даёт отправить.']
+    ];
+    const [title, text] = slides[state.tourStep - 1];
+    root.innerHTML = `<div class="backdrop" data-action="close"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="tour-title"><div class="kicker">Шаг ${state.tourStep} из 3</div><h2 id="tour-title">${title}</h2><p class="muted">${text}</p><div class="modal-actions"><button class="btn btn-ghost" type="button" data-action="close">Закрыть</button><button class="btn btn-primary" type="button" data-action="tour-next">${state.tourStep === 3 ? 'Открыть гранты' : 'Дальше'}</button></div></div></div>`;
+    return;
+  }
+  if (state.modal === 'connect') {
+    const blocked = !canRead();
+    root.innerHTML = `<div class="backdrop" data-action="close"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="conn-title"><button class="linkish" type="button" data-action="close">Закрыть</button><h2 id="conn-title">Подключение к Hive</h2>${blocked ? '<div class="error-box">Сейчас команда не сработает: ' + (has('SELECT') ? 'нет READ на файлы.' : 'нет SELECT и READ.') + '</div>' : '<div class="callout">Грантов на чтение достаточно. Каталог для входа не используется.</div>'}<label class="field">Beeline<pre class="sql">beeline -u 'jdbc:hive2://prod-cluster:10000/core' -n ${esc(scenario().login)} -e "select account_id from dim_account_h limit 20"</pre></label><div class="modal-actions"><button class="btn btn-ghost" type="button" data-action="copy" data-copy="beeline -u jdbc:hive2://prod-cluster:10000/core -n ${scenario().login}">Копировать</button><button class="btn btn-primary" type="button" data-action="close">Понятно</button></div></div></div>`;
+    return;
+  }
+  if (state.modal === 'steward') {
+    const missing = PRIVS.filter((p) => p.bundle === 'read' && !has(p.id)).map((p) => p.id);
+    const text = `Здравствуйте! Нужен доступ на чтение к Hive prod-cluster.core.dim_account_h. Сейчас не хватает: ${missing.length ? missing.join(', ') : 'ничего из чтения'}. ${myOpen() ? 'Заявка ' + myOpen().id + ' уже открыта.' : ''} Подскажите, чего не хватает для согласования.`;
+    root.innerHTML = `<div class="backdrop" data-action="close"><form class="modal" id="steward-form" role="dialog" aria-modal="true" aria-labelledby="st-title"><button class="linkish" type="button" data-action="close">Закрыть</button><h2 id="st-title">Спросить Data Steward</h2><p class="muted">Сообщение уже содержит источник и недостающие гранты, чтобы не пересказывать карточку.</p><label class="field">Кому<span class="muted">anna.steward · Data Stewards</span></label><label class="field">Сообщение<textarea id="steward-text">${esc(text)}</textarea></label><div class="modal-actions"><button class="btn btn-ghost" type="button" data-action="close">Отмена</button><button class="btn btn-primary" type="submit">Отправить</button></div></form></div>`;
+    return;
+  }
+  if (state.modal === 'request') {
+    const titles = ['', 'Куда просите доступ', 'Какие гранты нужны', 'Зачем и на какой срок', 'Проверьте перед отправкой', 'Заявка создана'];
+    let body = '';
+    if (state.modalStep === 1) body = `<div class="passport"><h3>Hive · prod-cluster.core.dim_account_h</h3><p class="muted">Это таблица в СУБД, не карточка датасета и не роль в DataHub. После согласования права появятся в Ranger.</p></div>`;
+    if (state.modalStep === 2) body = choiceHtml();
+    if (state.modalStep === 3) body = `<label class="field">Задача<select id="f-purpose">${PURPOSES.map((p) => `<option value="${p[0]}" ${state.purpose === p[0] ? 'selected' : ''}>${p[1]}</option>`).join('')}</select></label><label class="field">Срок<select id="f-term">${['30', '90', '180'].map((d) => `<option value="${d}" ${state.term === d ? 'selected' : ''}>${d} дней</option>`).join('')}</select></label><label class="field">Комментарий для стюарда<textarea id="f-comment">${esc(state.comment)}</textarea></label><p class="muted">Напишите, какую задачу закроет доступ. Фразы «нужен доступ» недостаточно — такие заявки отклоняют.</p>`;
+    if (state.modalStep === 4) {
+      const danger = state.selected.some((id) => ['DROP', 'CREATE', 'INDEX', 'LOCK'].includes(id));
+      body = `<div class="kv"><span>Объект</span><b>Hive core.dim_account_h</b><span>Кто просит</span><b>${esc(scenario().user)}</b><span>Гранты</span><b>${esc(state.selected.join(', ') || '—')}</b><span>Задача</span><b>${esc(purposeLabel(state.purpose))}</b><span>Срок</span><b>${esc(state.term)} дней</b><span>Согласует</span><b>Data Stewards · anna.steward</b></div><p style="margin-top:10px">${esc(state.comment)}</p>${danger ? `<label class="choice" style="margin-top:10px"><input id="f-danger" type="checkbox" ${state.dangerOk ? 'checked' : ''} /><span><strong>Понимаю, что это административные права</strong><small>DROP удалит таблицу для всех пользователей источника.</small></span></label>` : '<p class="callout">Административные гранты не выбраны. Так заявка проще согласуется.</p>'}`;
+    }
+    if (state.modalStep === 5) body = `<div class="callout"><strong>${esc(state.pending.id)} создана.</strong> Статус — Активна. Гранты на вкладке появятся только после согласования и паузы Ranger, не сразу.</div><ol class="steps"><li class="done"><span class="step-n">✓</span><div>Заявка на источник, не на датасет</div></li><li class="now"><span class="step-n">2</span><div>Согласование Data Stewards, около 2 рабочих дней</div></li><li><span class="step-n">3</span><div>Выдача роли и проверка запроса</div></li></ol>`;
+    const nextLabel = state.modalStep === 4 ? 'Отправить заявку' : state.modalStep === 5 ? 'Открыть заявку' : 'Дальше';
+    root.innerHTML = `<div class="backdrop"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="req-title"><div class="kicker">Запрос грантов на источник</div><h2 id="req-title">${titles[state.modalStep]}</h2><div class="steps-bar">${[1, 2, 3, 4].map((n) => `<span class="${n <= Math.min(state.modalStep, 4) ? 'on' : ''}"></span>`).join('')}</div>${body}<div class="modal-actions"><button class="btn btn-ghost" type="button" data-action="${state.modalStep === 1 || state.modalStep === 5 ? 'close' : 'back'}">${state.modalStep === 5 ? 'Остаться' : 'Назад'}</button><button class="btn btn-primary" type="button" data-action="next">${nextLabel}</button></div></div></div>`;
+    return;
+  }
+  root.innerHTML = '';
+}
+function render() {
+  const canvas = document.getElementById('canvas');
+  const scroll = canvas.scrollTop;
+  renderChrome();
+  renderPage();
+  renderSummary();
+  renderOverlay();
+  const jump = state.scrollTo;
+  state.scrollTo = null;
+  if (jump) requestAnimationFrame(() => document.getElementById(jump)?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
+  else canvas.scrollTop = scroll;
+}
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.remove('show'), 2600);
+}
+function readForm() {
+  const purpose = document.getElementById('f-purpose');
+  const term = document.getElementById('f-term');
+  const comment = document.getElementById('f-comment');
+  const danger = document.getElementById('f-danger');
+  if (purpose) state.purpose = purpose.value;
+  if (term) state.term = term.value;
+  if (comment) state.comment = comment.value;
+  if (danger) state.dangerOk = danger.checked;
+  state.selected = [...document.querySelectorAll('[data-grant]:checked')].map((el) => el.dataset.grant);
+  if (!state.selected.length && state.modalStep !== 2) {
+    /* keep previous selection when the checkboxes are not on this step */
+    state.selected = state.selectedDraft || state.selected;
+  }
+  if (document.querySelector('[data-grant]')) state.selectedDraft = state.selected.slice();
+}
+function openRequest() {
+  const open = myOpen();
+  if (open && state.scenario === 'none') {
+    state.drawerId = open.id;
+    state.modal = null;
+    state.tab = 'requests';
+    toast('Заявка ' + open.id + ' уже есть — новая не нужна');
+    render();
+    return;
+  }
+  if (open && state.scenario === 'select' && open.grants.includes('READ')) {
+    state.drawerId = open.id;
+    state.modal = null;
+    render();
+    return;
+  }
+  const missing = PRIVS.filter((p) => p.bundle === 'read' && !has(p.id)).map((p) => p.id);
+  state.selected = missing;
+  state.selectedDraft = missing.slice();
+  state.purpose = 'report';
+  state.term = '90';
+  state.comment = defaultComment();
+  state.dangerOk = false;
+  state.modal = 'request';
+  state.modalStep = 1;
+  state.drawerId = null;
+  render();
+}
+function submitRequest() {
+  readForm();
+  const grants = (state.selectedDraft || state.selected).filter((id) => !has(id));
+  if (!grants.length) { toast('Отметьте грант, которого ещё нет'); state.modalStep = 2; render(); return; }
+  if (grants.some((id) => ['DROP', 'CREATE', 'INDEX', 'LOCK'].includes(id)) && !state.dangerOk) {
+    toast('Подтвердите административные гранты или снимите их');
+    return;
+  }
+  const id = 'ACC-' + (1100 + Math.floor(Math.random() * 800));
+  state.pending = { id, userKey: state.scenario, status: 'active', author: scenario().user, recipients: [scenario().user], iso: '2026-10-30T15:10:00', grants, purpose: purposeLabel(state.purpose), term: state.term + ' дней', comment: state.comment.trim(), decision: 'Ждёт согласования Data Stewards. Гранты в Hive появятся после согласия.' };
+  state.modalStep = 5;
+  state.tab = 'grants';
+  render();
+}
+function onClick(e) {
+  if (e.target.id === 'dl') return;
+  const helpBtn = e.target.closest('[data-action="toggle-help"]');
+  const inHelp = e.target.closest('#help-pop');
+  if (!helpBtn && !inHelp && state.helpOpen) state.helpOpen = false;
+  const viewBtn = e.target.closest('[data-action="toggle-views"]');
+  if (!viewBtn && !e.target.closest('#views-pop') && state.viewsOpen) state.viewsOpen = false;
+  const el = e.target.closest('[data-action]');
+  if (!el) { renderChrome(); return; }
+  const action = el.dataset.action;
+  if (action === 'close' && e.target !== el && !e.target.closest('.linkish') && el.classList.contains('backdrop') === false && el.classList.contains('drawer-back') === false) {
+    /* inner clicks on dialog should not close; backdrop handler below */
+  }
+  if ((el.classList.contains('backdrop') || el.classList.contains('drawer-back')) && e.target !== el) return;
+  if (action === 'collapse-nav') state.navCollapsed = !state.navCollapsed;
+  else if (action === 'toggle-summary') state.summaryOpen = !state.summaryOpen;
+  else if (action === 'toggle-help') state.helpOpen = !state.helpOpen;
+  else if (action === 'toggle-views') state.viewsOpen = !state.viewsOpen;
+  else if (action === 'route') { state.route = el.dataset.route; if (el.dataset.tab) state.tab = el.dataset.tab; state.modal = null; state.drawerId = null; }
+  else if (action === 'tab') state.tab = el.dataset.tab;
+  else if (action === 'scenario') {
+    state.scenario = el.dataset.scenario;
+    state.pending = null;
+    state.page = 1;
+    state.ranQuery = null;
+    state.drawerId = null;
+    if (el.dataset.go) { state.route = 'dataset'; state.tab = 'grants'; }
+  }
+  else if (action === 'show-steps') { state.tab = 'grants'; state.scrollTo = 'how-to'; }
+  else if (action === 'request') openRequest();
+  else if (action === 'open-mine') { const open = myOpen(); if (open) { state.drawerId = open.id; state.modal = null; } }
+  else if (action === 'connect') { state.modal = 'connect'; state.drawerId = null; }
+  else if (action === 'steward') { state.modal = 'steward'; state.drawerId = null; }
+  else if (action === 'tour') { state.modal = 'tour'; state.tourStep = 1; state.drawerId = null; state.helpOpen = false; }
+  else if (action === 'tour-next') {
+    if (state.tourStep < 3) state.tourStep += 1;
+    else { state.modal = null; state.route = 'dataset'; state.tab = 'grants'; }
+  }
+  else if (action === 'close') { state.modal = null; state.drawerId = null; }
+  else if (action === 'back') { readForm(); state.modalStep = Math.max(1, state.modalStep - 1); }
+  else if (action === 'next') {
+    if (state.modal === 'request' && state.modalStep === 5) {
+      state.modal = null;
+      state.drawerId = state.pending && state.pending.id;
+      state.tab = 'requests';
+    } else if (state.modal === 'request' && state.modalStep === 3) {
+      readForm();
+      if (state.comment.trim().length < 10) { toast('Опишите задачу — без этого заявку отклоняют'); return; }
+      state.modalStep = 4;
+    } else if (state.modal === 'request' && state.modalStep === 2) {
+      readForm();
+      if (!(state.selectedDraft || []).filter((id) => !has(id)).length) { toast('Отметьте грант, которого ещё нет'); return; }
+      state.modalStep = 3;
+    } else if (state.modal === 'request' && state.modalStep === 4) {
+      submitRequest();
+      return;
+    } else if (state.modal === 'request') state.modalStep += 1;
+    render();
+    return;
+  }
+  else if (action === 'open-request') { state.drawerId = el.dataset.id; state.modal = null; }
+  else if (action === 'filter') { state.filter = el.dataset.filter; state.page = 1; }
+  else if (action === 'page') { const p = Number(el.dataset.page); const pages = Math.max(1, Math.ceil(visibleRequests().length / state.pageSize)); if (p >= 1 && p <= pages) state.page = p; }
+  else if (action === 'sort') { if (state.sort === el.dataset.sort) state.dir = state.dir === 'asc' ? 'desc' : 'asc'; else { state.sort = el.dataset.sort; state.dir = 'asc'; } }
+  else if (action === 'excel') exportCsv();
+  else if (action === 'copy') copyText(el.dataset.copy);
+  else if (action === 'toast') toast(el.dataset.msg);
+  else if (action === 'view') { state.view = el.dataset.view; state.viewsOpen = false; toast(state.view === 'All' ? 'Показаны все активы' : 'Представление «' + state.view + '». Таблица в него входит, гранты не меняются.'); }
+  else if (action === 'pick-dataset') { state.searchOpen = false; if (el.dataset.here === 'true') { state.route = 'dataset'; state.tab = 'grants'; } else toast('В прототипе открыта только dim_account_h. У соседних таблиц свои гранты.'); }
+  else if (action === 'run-query') { state.ranQuery = el.dataset.id; if (!canRead()) state.tab = 'queries'; }
+  else if (action === 'lineage') state.lineageId = el.dataset.id;
+  else if (action === 'docs') state.docsOpen = !state.docsOpen;
+  else if (action === 'edit-tags') state.tagEdit = !state.tagEdit;
+  else if (action === 'drop-tag') state.tags = state.tags.filter((t) => t !== el.dataset.tag);
+  if (action !== 'request' && action !== 'next') render();
+}
+function exportCsv() {
+  const rows = visibleRequests();
+  const header = ['Номер', 'Статус', 'Автор', 'Получатели', 'Дата', 'Гранты', 'Объект'];
+  const lines = [header].concat(rows.map((r) => [r.id, r.status, r.author, r.recipients.join('; '), fmt(r.iso), r.grants.join(' '), 'hive:prod-cluster.core.dim_account_h']));
+  const csv = lines.map((line) => line.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'dim_account_h-source-requests.csv';
+  a.id = 'dl';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
+  toast('Скачан CSV по ' + rows.length + ' заявкам');
+}
+function copyText(text) {
+  const done = () => toast('Скопировано');
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(done, fallback);
+  else fallback();
+  function fallback() {
+    const area = document.createElement('textarea');
+    area.value = text;
+    document.body.appendChild(area);
+    area.select();
+    document.execCommand('copy');
+    area.remove();
+    done();
+  }
+}
+document.body.addEventListener('click', onClick);
+document.body.addEventListener('input', (e) => {
+  if (e.target.id === 'search') { state.search = e.target.value; state.searchOpen = true; renderChrome(); }
+  if (e.target.id === 'req-q') { state.searchQuery = e.target.value; state.page = 1; render(); const again = document.getElementById('req-q'); if (again) { again.focus(); again.setSelectionRange(again.value.length, again.value.length); } }
+  if (e.target.id === 'new-tag') return;
+});
+document.body.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { state.modal = null; state.drawerId = null; state.searchOpen = false; state.helpOpen = false; state.viewsOpen = false; render(); }
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); document.getElementById('search').focus(); state.searchOpen = true; renderChrome(); }
+  if (e.key === 'Enter' && e.target.id === 'new-tag') {
+    const value = e.target.value.trim();
+    if (value && !state.tags.includes(value)) state.tags.push(value);
+    state.tagEdit = false;
+    render();
+  }
+  if (e.key === 'Enter' && e.target.dataset.action === 'open-request') e.target.click();
+});
+document.body.addEventListener('submit', (e) => {
+  if (e.target.id !== 'steward-form') return;
+  e.preventDefault();
+  state.modal = null;
+  render();
+  toast('Сообщение отправлено стюарду anna.steward');
+});
+document.getElementById('search-form').addEventListener('submit', (e) => {
+  e.preventDefault();
+  state.route = 'dataset';
+  state.searchOpen = false;
+  render();
+  toast('Найдите dim_account_h — у этой таблицы разобран доступ к Hive');
+});
+document.getElementById('search').addEventListener('focus', () => { state.searchOpen = true; renderChrome(); });
+render();
+</script>
+</body>
+</html>
